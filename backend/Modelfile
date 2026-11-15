@@ -1,0 +1,3 @@
+FROM qwen3-vl:4b
+# Two satellite images plus structured JSON output exceed the default 4096-token context.
+PARAMETER num_ctx 8192
