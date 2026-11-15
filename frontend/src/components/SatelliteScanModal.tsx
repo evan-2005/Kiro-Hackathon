@@ -153,10 +153,16 @@ export const SatelliteScanModal: React.FC<SatelliteScanModalProps> = ({
               </>
             ) : (
               <p className="text-xs font-bold tracking-wider text-radar-crimson" aria-live="polite">
-                ANALYSIS COMPLETE · {hazardCount ?? '—'} HAZARD ZONES
+                ANALYSIS COMPLETE · {hazardCount ?? '—'} HAZARD {hazardCount === 1 ? 'ZONE' : 'ZONES'}
               </p>
             )}
           </div>
+
+          {/* Required imagery attribution (Dev 3: pitch/assets/README.md) */}
+          <p className="mt-3 text-[9px] leading-snug text-slate-500">
+            BEFORE: Esri World Imagery — Esri, Vantor, Earthstar Geographics, and the GIS User Community. AFTER: AI-generated
+            flood composite of the same scene.
+          </p>
         </div>
       </div>
     </div>

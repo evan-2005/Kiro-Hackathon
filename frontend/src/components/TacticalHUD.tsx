@@ -189,10 +189,14 @@ export const TacticalHUD: React.FC<TacticalHUDProps> = ({
                 <div key={i} className="text-[11px] font-mono bg-black/40 p-1.5 rounded border border-radar-cyan/20">
                   <div className="flex justify-between items-center">
                     <span className="text-radar-cyan font-bold">{feat.properties?.name || 'Safe Camp Site'}</span>
-                    <span className="text-[10px] text-slate-300">+{feat.properties?.elevationM}m</span>
+                    <span className="text-[10px] text-slate-300">
+                      {feat.properties?.elevationM != null ? `+${feat.properties.elevationM}m` : '—'}
+                    </span>
                   </div>
                   <p className="text-slate-400 text-[10px] leading-tight mt-0.5">
-                    Cap: {feat.properties?.capacityPersons || feat.properties?.capacity_est || 3500} persons • {feat.properties?.roadAccess || 'Direct road access'}
+                    Cap: {feat.properties?.capacityPersons != null
+                      ? `${Number(feat.properties.capacityPersons).toLocaleString()} persons`
+                      : '—'} • {feat.properties?.roadAccess || '—'}
                   </p>
                 </div>
               ))}

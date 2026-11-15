@@ -185,8 +185,9 @@
 }
 
 /* Pulsing route markers (start / destination) */
+/* No `position` here: Mapbox's .mapboxgl-marker sets position:absolute, which also anchors ::after.
+   Overriding it to relative pushes every marker after the first out of place. */
 .pulse-marker {
-  position: relative;
   width: 14px;
   height: 14px;
   border-radius: 50%;

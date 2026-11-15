@@ -71,7 +71,7 @@ export function App() {
   // Step 1: Scan Satellite Telemetry
   const handleScanTelemetry = async () => {
     setIsLoading(true);
-    addLog('[SAT-LINK] Ingesting Sentinel-1 SAR & Sentinel-2 optical imagery...');
+    addLog('[SAT-LINK] Ingesting before/after orbital imagery (simulated flood event)...');
     addLog('[AI-PIPELINE] Querying local Qwen3-VL (qwen3-vl:4b) damage bounding-box model...');
 
     const runId = ++runIdRef.current;
@@ -91,8 +91,14 @@ export function App() {
       setScanModalOpen(false);
       setHazardData(data);
       setStage('HAZARDS_DETECTED');
-      addLog(`[AI-CONFIRMED] ${data.features.length} Critical hazard zones detected on transit corridors.`);
-      addLog('[ALERT] Lebuh Pasar Besar Bridge & Federal Highway underpass impassable.');
+      const hazardCount = data.features.length;
+      addLog(`[AI-CONFIRMED] ${hazardCount} hazard zone${hazardCount === 1 ? '' : 's'} detected on transit corridors.`);
+      const hazardTitles = data.features
+        .map((f: { properties?: { title?: unknown } | null }) => f?.properties?.title)
+        .filter((t: unknown): t is string => typeof t === 'string' && t.length > 0);
+      if (hazardTitles.length > 0) {
+        addLog(`[ALERT] Impassable: ${hazardTitles.join(', ')}.`);
+      }
     } catch (e) {
       if (runId !== runIdRef.current) return;
       setScanModalOpen(false);
