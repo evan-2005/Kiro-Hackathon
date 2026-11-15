@@ -1,0 +1,8 @@
+{
+  "docsHttpStatus": 200,
+  "cacheHttpStatus": 200,
+  "cacheRequestSeconds": 0.015,
+  "source": "FALLBACK_GOLDEN_CACHE",
+  "hazardCount": 1,
+  "fallbackFlagVerified": true
+}
