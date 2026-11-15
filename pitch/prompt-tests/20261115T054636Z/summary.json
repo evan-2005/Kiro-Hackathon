@@ -1,0 +1,13 @@
+{
+  "model": "qwen3-vl:4b-instruct-aegis",
+  "coldSeconds": 24.571,
+  "warmMedianSeconds": 3.724,
+  "noChangeControlPassed": true,
+  "syntheticBoxes": [
+    [],
+    [],
+    [],
+    []
+  ],
+  "cloudLimitedBoxes": []
+}

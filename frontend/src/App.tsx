@@ -10,7 +10,7 @@ import {
   GeoJsonFeatureCollection,
 } from './services/api';
 import { computeSafeReliefZones } from './services/turfSafeZone';
-import { calculateRescueRoute, extractHazardAvoidancePoints } from './services/routing';
+import { calculateRescueRoute } from './services/routing';
 
 const BEFORE_IMAGE_SRC = '/imagery/before.jpg';
 const AFTER_IMAGE_SRC = '/imagery/after.jpg';
@@ -72,7 +72,7 @@ export function App() {
   const handleScanTelemetry = async () => {
     setIsLoading(true);
     addLog('[SAT-LINK] Ingesting before/after orbital imagery (simulated flood event)...');
-    addLog('[AI-PIPELINE] Querying local Qwen3-VL (qwen3-vl:4b) damage bounding-box model...');
+    addLog('[AI-PIPELINE] Loading disaster analysis (cached Qwen3-VL output in demo mode)...');
 
     const runId = ++runIdRef.current;
     setScanStatus('scanning');
@@ -168,15 +168,14 @@ export function App() {
     }
 
     try {
-      // Pass the hazard collection (not pre-extracted points) so Dev 2's router can add the points where
-      // the direct road route crosses each hazard; centroid-only points leave the route unchanged.
-      // If hazards are somehow missing, fall back to Dev 2's helper (which uses the golden cache).
-      const avoidInput = hazardData?.features.length ? hazardData : extractHazardAvoidancePoints(hazardData);
-      const route = await calculateRescueRoute(START_COORD, destination, avoidInput);
+      const route = await calculateRescueRoute(START_COORD, destination, hazardData ?? undefined);
       if (runId !== runIdRef.current) return;
 
       setRouteData(route);
       setStage('ROUTE_DISPATCHED');
+      if (route.metadata?.engine === 'CACHED_DEMO_ROUTE') {
+        addLog('[ROUTER-CACHE] Loaded cached demo corridor after checking the current hazard buffer.');
+      }
 
       const safeDistanceKm = route.metadata?.safeDistanceKm;
       const durationMin = route.metadata?.durationMin;

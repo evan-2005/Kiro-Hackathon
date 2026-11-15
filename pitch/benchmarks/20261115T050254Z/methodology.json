@@ -1,0 +1,191 @@
+{
+  "startedAt": "2026-11-15T05:02:54.264088+00:00",
+  "platform": "macOS-27.2.1-arm64-arm-64bit-Mach-O",
+  "models": [
+    "qwen3-vl:4b-aegis",
+    "qwen3-vl:4b-instruct-aegis"
+  ],
+  "contextTokens": 8192,
+  "temperature": 0,
+  "maxOutputTokens": 4096,
+  "reasoningEffort": "none",
+  "api": "OpenAI-compatible chat.completions.parse",
+  "images": [
+    {
+      "path": "pitch/assets/kl-before.jpg",
+      "sha256": "36e28d863917cf23c5fcfda6ea02ec408d58638e96de32370d1840e89be6a497"
+    },
+    {
+      "path": "pitch/assets/kl-after-synthetic.png",
+      "sha256": "3d327257ffd72e8ab6ec9cf7620ccbf284be677bc3fc452e925a0a3a1240d3ee"
+    }
+  ],
+  "systemPrompt": "You analyze aligned, north-up optical satellite images of Kuala Lumpur. When BEFORE is supplied, compare it with AFTER and detect only new visible flooding outside normal river banks or visible structural damage in AFTER. Use tight bounding boxes around each connected affected area. Do not label normal rivers, shadows, or undamaged buildings as hazards. Return hazards=[] if no change is visible. Coordinates refer ONLY to the full AFTER image, excluding no margins: origin (0,0) is top-left, (1,1) is bottom-right, x increases right and y increases down. Return decimal ratios, never pixels, percentages, longitude/latitude, or 0-1000 values. Divide pixel x by image width and pixel y by image height. Require 0 <= min_x < max_x <= 1 and 0 <= min_y < max_y <= 1. For example, a box covering the middle quarter of an image has min_x=0.375, min_y=0.375, max_x=0.625, max_y=0.625. Do not invent named bridges, confirmed road closures, water depths or SAR measurements. Set water_depth_est_m=null unless depth evidence is provided. Describe visible impacts as suspected and requiring field verification. Return only JSON matching this schema: {\"$defs\": {\"DetectedHazard\": {\"properties\": {\"title\": {\"description\": \"Name or short descriptor of the hazard\", \"title\": \"Title\", \"type\": \"string\"}, \"hazard_type\": {\"description\": \"E.g., RIVER_OVERTOPPING, BRIDGE_WASHOUT, LANDSLIDE, STRUCTURAL_COLLAPSE\", \"title\": \"Hazard Type\", \"type\": \"string\"}, \"severity\": {\"enum\": [\"CRITICAL\", \"HIGH\", \"MODERATE\"], \"title\": \"Severity\", \"type\": \"string\"}, \"water_depth_est_m\": {\"anyOf\": [{\"minimum\": 0, \"type\": \"number\"}, {\"type\": \"null\"}], \"description\": \"Depth in meters only if supported by evidence, otherwise null\", \"title\": \"Water Depth Est M\"}, \"impact_description\": {\"description\": \"Impact on transit and evacuation corridors\", \"title\": \"Impact Description\", \"type\": \"string\"}, \"min_x\": {\"maximum\": 1.0, \"minimum\": 0.0, \"title\": \"Min X\", \"type\": \"number\"}, \"min_y\": {\"maximum\": 1.0, \"minimum\": 0.0, \"title\": \"Min Y\", \"type\": \"number\"}, \"max_x\": {\"maximum\": 1.0, \"minimum\": 0.0, \"title\": \"Max X\", \"type\": \"number\"}, \"max_y\": {\"maximum\": 1.0, \"minimum\": 0.0, \"title\": \"Max Y\", \"type\": \"number\"}}, \"required\": [\"title\", \"hazard_type\", \"severity\", \"water_depth_est_m\", \"impact_description\", \"min_x\", \"min_y\", \"max_x\", \"max_y\"], \"title\": \"DetectedHazard\", \"type\": \"object\"}}, \"properties\": {\"summary\": {\"title\": \"Summary\", \"type\": \"string\"}, \"hazards\": {\"items\": {\"$ref\": \"#/$defs/DetectedHazard\"}, \"title\": \"Hazards\", \"type\": \"array\"}}, \"required\": [\"summary\", \"hazards\"], \"title\": \"VisionAnalysisResult\", \"type\": \"object\"}",
+  "schema": {
+    "$defs": {
+      "DetectedHazard": {
+        "properties": {
+          "title": {
+            "description": "Name or short descriptor of the hazard",
+            "title": "Title",
+            "type": "string"
+          },
+          "hazard_type": {
+            "description": "E.g., RIVER_OVERTOPPING, BRIDGE_WASHOUT, LANDSLIDE, STRUCTURAL_COLLAPSE",
+            "title": "Hazard Type",
+            "type": "string"
+          },
+          "severity": {
+            "enum": [
+              "CRITICAL",
+              "HIGH",
+              "MODERATE"
+            ],
+            "title": "Severity",
+            "type": "string"
+          },
+          "water_depth_est_m": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Depth in meters only if supported by evidence, otherwise null",
+            "title": "Water Depth Est M"
+          },
+          "impact_description": {
+            "description": "Impact on transit and evacuation corridors",
+            "title": "Impact Description",
+            "type": "string"
+          },
+          "min_x": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Min X",
+            "type": "number"
+          },
+          "min_y": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Min Y",
+            "type": "number"
+          },
+          "max_x": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Max X",
+            "type": "number"
+          },
+          "max_y": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Max Y",
+            "type": "number"
+          }
+        },
+        "required": [
+          "title",
+          "hazard_type",
+          "severity",
+          "water_depth_est_m",
+          "impact_description",
+          "min_x",
+          "min_y",
+          "max_x",
+          "max_y"
+        ],
+        "title": "DetectedHazard",
+        "type": "object"
+      }
+    },
+    "properties": {
+      "summary": {
+        "title": "Summary",
+        "type": "string"
+      },
+      "hazards": {
+        "items": {
+          "$ref": "#/$defs/DetectedHazard"
+        },
+        "title": "Hazards",
+        "type": "array"
+      }
+    },
+    "required": [
+      "summary",
+      "hazards"
+    ],
+    "title": "VisionAnalysisResult",
+    "type": "object"
+  },
+  "syntheticAfterImage": true,
+  "coldDefinition": "Model unloaded immediately before first image request; disk caches not cleared",
+  "warmDefinition": "Same image pair repeated with loaded model; Ollama may reuse the input cache",
+  "accuracyGroundTruthAvailable": false,
+  "ollamaVersion": {
+    "version": "0.40.14"
+  },
+  "initialLoadedModels": {
+    "models": []
+  },
+  "installedModels": {
+    "models": [
+      {
+        "name": "qwen3-vl:4b-aegis",
+        "model": "qwen3-vl:4b-aegis",
+        "modified_at": "2026-11-15T11:23:21.86134051+08:00",
+        "size": 3336619195,
+        "digest": "38a641d83bbf9e3a2d335dcfafef761f87d5da4ec758d364247ca431dd7f4f3c",
+        "details": {
+          "parent_model": "qwen3-vl:4b",
+          "format": "gguf",
+          "family": "qwen3vl",
+          "families": [
+            "qwen3vl"
+          ],
+          "parameter_size": "4.0B",
+          "quantization_level": "Q4_K_M",
+          "context_length": 262144,
+          "embedding_length": 2560,
+          "runner": "llamacpp"
+        },
+        "capabilities": [
+          "completion",
+          "vision",
+          "tools",
+          "thinking"
+        ]
+      },
+      {
+        "name": "qwen3-vl:4b",
+        "model": "qwen3-vl:4b",
+        "modified_at": "2026-11-15T11:05:05.008938057+08:00",
+        "size": 3336619180,
+        "digest": "a1b29c246319cdcb1f3842f36d29f198f737c0cf516ba1bcba34b1b974e87980",
+        "details": {
+          "parent_model": "dhiltgen/qwen3-vl:4b-thinking-q4_K_M-llamacpp",
+          "format": "gguf",
+          "family": "qwen3vl",
+          "families": [
+            "qwen3vl"
+          ],
+          "parameter_size": "4.0B",
+          "quantization_level": "Q4_K_M",
+          "context_length": 262144,
+          "embedding_length": 2560,
+          "runner": "llamacpp"
+        },
+        "capabilities": [
+          "completion",
+          "vision",
+          "tools",
+          "thinking"
+        ]
+      }
+    ]
+  }
+}

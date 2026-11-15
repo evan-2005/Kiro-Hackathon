@@ -1,0 +1,48 @@
+[
+  {
+    "model": "qwen3-vl:4b-aegis",
+    "phase": "cold",
+    "run": 0,
+    "startedAt": "2026-11-15T05:02:54.331230+00:00",
+    "validJSON": true,
+    "seconds": 163.176,
+    "finishReason": "stop",
+    "usage": {
+      "completion_tokens": 3727,
+      "prompt_tokens": 3350,
+      "total_tokens": 7077,
+      "completion_tokens_details": null,
+      "prompt_tokens_details": {
+        "audio_tokens": null,
+        "cache_write_tokens": null,
+        "cached_tokens": 0,
+        "image_tokens": null,
+        "text_tokens": null
+      }
+    },
+    "result": {
+      "summary": "Detected river overtopping in Kuala Lumpur",
+      "hazards": [
+        {
+          "title": "River Overtopping",
+          "hazard_type": "RIVER_OVERTOPPING",
+          "severity": "CRITICAL",
+          "water_depth_est_m": null,
+          "impact_description": "Suspected river overtopping causing potential inundation of adjacent areas, requiring field verification.",
+          "min_x": 0.4,
+          "min_y": 0.3,
+          "max_x": 0.5,
+          "max_y": 0.7
+        }
+      ]
+    },
+    "boxes": [
+      [
+        0.4,
+        0.3,
+        0.5,
+        0.7
+      ]
+    ]
+  }
+]

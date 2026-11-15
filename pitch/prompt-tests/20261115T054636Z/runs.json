@@ -1,0 +1,128 @@
+[
+  {
+    "case": "synthetic-cold",
+    "seconds": 24.571,
+    "result": {
+      "type": "FeatureCollection",
+      "metadata": {
+        "source": "QWEN3_VL_LIVE_PIPELINE (qwen3-vl:4b-instruct-aegis)",
+        "summary": "No visible floodwater or structural damage detected. The river appears unchanged in extent and color, and no new muddy water or damage is evident in the AFTER image compared to the BEFORE baseline. The images are identical in content, with no new water spread into adjoining land or visible structural collapse.",
+        "hazardCount": 0,
+        "inferenceSeconds": 24.511,
+        "boundingBox": {
+          "minLon": 101.66,
+          "minLat": 3.11,
+          "maxLon": 101.73,
+          "maxLat": 3.17
+        }
+      },
+      "features": []
+    },
+    "boxes": []
+  },
+  {
+    "case": "synthetic-warm",
+    "seconds": 3.669,
+    "result": {
+      "type": "FeatureCollection",
+      "metadata": {
+        "source": "QWEN3_VL_LIVE_PIPELINE (qwen3-vl:4b-instruct-aegis)",
+        "summary": "No visible floodwater or structural damage detected. The river appears unchanged in extent and color, and no new muddy water or damage is evident in the AFTER image compared to the BEFORE baseline. The images are identical in content, with no new water spread into adjoining land or visible structural collapse.",
+        "hazardCount": 0,
+        "inferenceSeconds": 3.658,
+        "boundingBox": {
+          "minLon": 101.66,
+          "minLat": 3.11,
+          "maxLon": 101.73,
+          "maxLat": 3.17
+        }
+      },
+      "features": []
+    },
+    "boxes": []
+  },
+  {
+    "case": "synthetic-warm",
+    "seconds": 3.817,
+    "result": {
+      "type": "FeatureCollection",
+      "metadata": {
+        "source": "QWEN3_VL_LIVE_PIPELINE (qwen3-vl:4b-instruct-aegis)",
+        "summary": "No visible floodwater or structural damage detected. The river appears unchanged in extent and color, and no new muddy water or damage is evident in the AFTER image compared to the BEFORE baseline. The images are identical in content, with no new water spread into adjoining land or visible structural collapse.",
+        "hazardCount": 0,
+        "inferenceSeconds": 3.812,
+        "boundingBox": {
+          "minLon": 101.66,
+          "minLat": 3.11,
+          "maxLon": 101.73,
+          "maxLat": 3.17
+        }
+      },
+      "features": []
+    },
+    "boxes": []
+  },
+  {
+    "case": "synthetic-warm",
+    "seconds": 3.724,
+    "result": {
+      "type": "FeatureCollection",
+      "metadata": {
+        "source": "QWEN3_VL_LIVE_PIPELINE (qwen3-vl:4b-instruct-aegis)",
+        "summary": "No visible floodwater or structural damage detected. The river appears unchanged in extent and color, and no new muddy water or damage is evident in the AFTER image compared to the BEFORE baseline. The images are identical in content, with no new water spread into adjoining land or visible structural collapse.",
+        "hazardCount": 0,
+        "inferenceSeconds": 3.693,
+        "boundingBox": {
+          "minLon": 101.66,
+          "minLat": 3.11,
+          "maxLon": 101.73,
+          "maxLat": 3.17
+        }
+      },
+      "features": []
+    },
+    "boxes": []
+  },
+  {
+    "case": "no-change",
+    "seconds": 8.658,
+    "result": {
+      "type": "FeatureCollection",
+      "metadata": {
+        "source": "QWEN3_VL_LIVE_PIPELINE (qwen3-vl:4b-instruct-aegis)",
+        "summary": "No visible changes detected between BEFORE and AFTER images. Both images appear identical, with no\u65b0\u589e floodwater, structural damage, or other anomalies. The urban layout, green areas, roads, and buildings are unchanged.",
+        "hazardCount": 0,
+        "inferenceSeconds": 8.653,
+        "boundingBox": {
+          "minLon": 101.66,
+          "minLat": 3.11,
+          "maxLon": 101.73,
+          "maxLat": 3.17
+        }
+      },
+      "features": []
+    },
+    "boxes": []
+  },
+  {
+    "case": "cloud-limited",
+    "seconds": 15.259,
+    "result": {
+      "type": "FeatureCollection",
+      "metadata": {
+        "source": "QWEN3_VL_LIVE_PIPELINE (qwen3-vl:4b-instruct-aegis)",
+        "summary": "No visible changes detected between BEFORE and AFTER images. Both images show similar cloud cover and urban layout with no discernible new floodwater or structural damage.",
+        "hazardCount": 0,
+        "inferenceSeconds": 15.254,
+        "boundingBox": {
+          "minLon": 101.66,
+          "minLat": 3.11,
+          "maxLon": 101.73,
+          "maxLat": 3.17
+        }
+      },
+      "features": []
+    },
+    "boxes": []
+  }
+]

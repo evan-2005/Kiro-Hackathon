@@ -1,0 +1,340 @@
+[
+  {
+    "case": "synthetic-cold",
+    "seconds": 29.737,
+    "result": {
+      "type": "FeatureCollection",
+      "metadata": {
+        "source": "QWEN3_VL_LIVE_PIPELINE (qwen3-vl:4b-instruct-aegis)",
+        "summary": "River overtopping observed in central urban area, with visible floodwater extending beyond natural banks. No confirmed structural collapses or landslides.",
+        "hazardCount": 1,
+        "inferenceSeconds": 29.71,
+        "boundingBox": {
+          "minLon": 101.66,
+          "minLat": 3.11,
+          "maxLon": 101.73,
+          "maxLat": 3.17
+        }
+      },
+      "features": [
+        {
+          "type": "Feature",
+          "id": "ai-hazard-1",
+          "properties": {
+            "title": "River Overtopping",
+            "type": "RIVER_OVERTOPPING",
+            "severity": "HIGH",
+            "waterDepthEstM": null,
+            "infrastructureImpact": "Floodwater has inundated adjacent urban areas beyond river banks, potentially blocking transit corridors and posing evacuation risks. Depth and extent require field verification.",
+            "bboxNormalized": [
+              0.45,
+              0.35,
+              0.55,
+              0.55
+            ],
+            "color": "#FF2A6D"
+          },
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  101.6915,
+                  3.149
+                ],
+                [
+                  101.6915,
+                  3.137
+                ],
+                [
+                  101.6985,
+                  3.137
+                ],
+                [
+                  101.6985,
+                  3.149
+                ],
+                [
+                  101.6915,
+                  3.149
+                ]
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    "boxes": [
+      [
+        0.45,
+        0.35,
+        0.55,
+        0.55
+      ]
+    ]
+  },
+  {
+    "case": "synthetic-warm",
+    "seconds": 8.142,
+    "result": {
+      "type": "FeatureCollection",
+      "metadata": {
+        "source": "QWEN3_VL_LIVE_PIPELINE (qwen3-vl:4b-instruct-aegis)",
+        "summary": "River overtopping observed in central urban area, with visible floodwater extending beyond natural banks. No confirmed structural collapses or landslides.",
+        "hazardCount": 1,
+        "inferenceSeconds": 8.137,
+        "boundingBox": {
+          "minLon": 101.66,
+          "minLat": 3.11,
+          "maxLon": 101.73,
+          "maxLat": 3.17
+        }
+      },
+      "features": [
+        {
+          "type": "Feature",
+          "id": "ai-hazard-1",
+          "properties": {
+            "title": "River Overtopping",
+            "type": "RIVER_OVERTOPPING",
+            "severity": "HIGH",
+            "waterDepthEstM": null,
+            "infrastructureImpact": "Floodwater has inundated adjacent urban areas beyond river banks, potentially blocking transit corridors and posing evacuation risks. Depth and extent require field verification.",
+            "bboxNormalized": [
+              0.45,
+              0.35,
+              0.55,
+              0.55
+            ],
+            "color": "#FF2A6D"
+          },
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  101.6915,
+                  3.149
+                ],
+                [
+                  101.6915,
+                  3.137
+                ],
+                [
+                  101.6985,
+                  3.137
+                ],
+                [
+                  101.6985,
+                  3.149
+                ],
+                [
+                  101.6915,
+                  3.149
+                ]
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    "boxes": [
+      [
+        0.45,
+        0.35,
+        0.55,
+        0.55
+      ]
+    ]
+  },
+  {
+    "case": "synthetic-warm",
+    "seconds": 8.729,
+    "result": {
+      "type": "FeatureCollection",
+      "metadata": {
+        "source": "QWEN3_VL_LIVE_PIPELINE (qwen3-vl:4b-instruct-aegis)",
+        "summary": "River overtopping observed in central urban area, with visible floodwater extending beyond natural banks. No confirmed structural collapses or landslides.",
+        "hazardCount": 1,
+        "inferenceSeconds": 8.725,
+        "boundingBox": {
+          "minLon": 101.66,
+          "minLat": 3.11,
+          "maxLon": 101.73,
+          "maxLat": 3.17
+        }
+      },
+      "features": [
+        {
+          "type": "Feature",
+          "id": "ai-hazard-1",
+          "properties": {
+            "title": "River Overtopping",
+            "type": "RIVER_OVERTOPPING",
+            "severity": "HIGH",
+            "waterDepthEstM": null,
+            "infrastructureImpact": "Floodwater has inundated adjacent urban areas beyond river banks, potentially blocking transit corridors and posing evacuation risks. Depth and extent require field verification.",
+            "bboxNormalized": [
+              0.45,
+              0.35,
+              0.55,
+              0.55
+            ],
+            "color": "#FF2A6D"
+          },
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  101.6915,
+                  3.149
+                ],
+                [
+                  101.6915,
+                  3.137
+                ],
+                [
+                  101.6985,
+                  3.137
+                ],
+                [
+                  101.6985,
+                  3.149
+                ],
+                [
+                  101.6915,
+                  3.149
+                ]
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    "boxes": [
+      [
+        0.45,
+        0.35,
+        0.55,
+        0.55
+      ]
+    ]
+  },
+  {
+    "case": "synthetic-warm",
+    "seconds": 8.795,
+    "result": {
+      "type": "FeatureCollection",
+      "metadata": {
+        "source": "QWEN3_VL_LIVE_PIPELINE (qwen3-vl:4b-instruct-aegis)",
+        "summary": "River overtopping observed in central urban area, with visible floodwater extending beyond natural banks. No confirmed structural collapses or landslides.",
+        "hazardCount": 1,
+        "inferenceSeconds": 8.787,
+        "boundingBox": {
+          "minLon": 101.66,
+          "minLat": 3.11,
+          "maxLon": 101.73,
+          "maxLat": 3.17
+        }
+      },
+      "features": [
+        {
+          "type": "Feature",
+          "id": "ai-hazard-1",
+          "properties": {
+            "title": "River Overtopping",
+            "type": "RIVER_OVERTOPPING",
+            "severity": "HIGH",
+            "waterDepthEstM": null,
+            "infrastructureImpact": "Floodwater has inundated adjacent urban areas beyond river banks, potentially blocking transit corridors and posing evacuation risks. Depth and extent require field verification.",
+            "bboxNormalized": [
+              0.45,
+              0.35,
+              0.55,
+              0.55
+            ],
+            "color": "#FF2A6D"
+          },
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  101.6915,
+                  3.149
+                ],
+                [
+                  101.6915,
+                  3.137
+                ],
+                [
+                  101.6985,
+                  3.137
+                ],
+                [
+                  101.6985,
+                  3.149
+                ],
+                [
+                  101.6915,
+                  3.149
+                ]
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    "boxes": [
+      [
+        0.45,
+        0.35,
+        0.55,
+        0.55
+      ]
+    ]
+  },
+  {
+    "case": "no-change",
+    "seconds": 7.523,
+    "result": {
+      "type": "FeatureCollection",
+      "metadata": {
+        "source": "QWEN3_VL_LIVE_PIPELINE (qwen3-vl:4b-instruct-aegis)",
+        "summary": "No new visible flooding or structural damage detected compared to the baseline.",
+        "hazardCount": 0,
+        "inferenceSeconds": 7.517,
+        "boundingBox": {
+          "minLon": 101.66,
+          "minLat": 3.11,
+          "maxLon": 101.73,
+          "maxLat": 3.17
+        }
+      },
+      "features": []
+    },
+    "boxes": []
+  },
+  {
+    "case": "cloud-limited",
+    "seconds": 13.115,
+    "result": {
+      "type": "FeatureCollection",
+      "metadata": {
+        "source": "QWEN3_VL_LIVE_PIPELINE (qwen3-vl:4b-instruct-aegis)",
+        "summary": "No new visible flooding or structural damage detected compared to the baseline image.",
+        "hazardCount": 0,
+        "inferenceSeconds": 13.107,
+        "boundingBox": {
+          "minLon": 101.66,
+          "minLat": 3.11,
+          "maxLon": 101.73,
+          "maxLat": 3.17
+        }
+      },
+      "features": []
+    },
+    "boxes": []
+  }
+]

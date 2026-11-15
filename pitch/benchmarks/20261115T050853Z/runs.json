@@ -1,0 +1,386 @@
+[
+  {
+    "model": "qwen3-vl:4b-aegis",
+    "phase": "cold",
+    "run": 0,
+    "startedAt": "2026-11-15T05:08:53.282254+00:00",
+    "validJSON": true,
+    "seconds": 171.491,
+    "finishReason": "stop",
+    "usage": {
+      "completion_tokens": 3727,
+      "prompt_tokens": 3350,
+      "total_tokens": 7077,
+      "completion_tokens_details": null,
+      "prompt_tokens_details": {
+        "audio_tokens": null,
+        "cache_write_tokens": null,
+        "cached_tokens": 0,
+        "image_tokens": null,
+        "text_tokens": null
+      }
+    },
+    "visibleResponseCharacters": 376,
+    "reasoningResponseCharacters": 0,
+    "result": {
+      "summary": "Detected river overtopping in Kuala Lumpur",
+      "hazards": [
+        {
+          "title": "River Overtopping",
+          "hazard_type": "RIVER_OVERTOPPING",
+          "severity": "CRITICAL",
+          "water_depth_est_m": null,
+          "impact_description": "Suspected river overtopping causing potential inundation of adjacent areas, requiring field verification.",
+          "min_x": 0.4,
+          "min_y": 0.3,
+          "max_x": 0.5,
+          "max_y": 0.7
+        }
+      ]
+    },
+    "boxes": [
+      [
+        0.4,
+        0.3,
+        0.5,
+        0.7
+      ]
+    ]
+  },
+  {
+    "model": "qwen3-vl:4b-aegis",
+    "phase": "warm",
+    "run": 1,
+    "startedAt": "2026-11-15T05:11:44.774624+00:00",
+    "validJSON": true,
+    "seconds": 154.956,
+    "finishReason": "stop",
+    "usage": {
+      "completion_tokens": 3727,
+      "prompt_tokens": 3350,
+      "total_tokens": 7077,
+      "completion_tokens_details": null,
+      "prompt_tokens_details": {
+        "audio_tokens": null,
+        "cache_write_tokens": null,
+        "cached_tokens": 3349,
+        "image_tokens": null,
+        "text_tokens": null
+      }
+    },
+    "visibleResponseCharacters": 376,
+    "reasoningResponseCharacters": 0,
+    "result": {
+      "summary": "Detected river overtopping in Kuala Lumpur",
+      "hazards": [
+        {
+          "title": "River Overtopping",
+          "hazard_type": "RIVER_OVERTOPPING",
+          "severity": "CRITICAL",
+          "water_depth_est_m": null,
+          "impact_description": "Suspected river overtopping causing potential inundation of adjacent areas, requiring field verification.",
+          "min_x": 0.4,
+          "min_y": 0.3,
+          "max_x": 0.5,
+          "max_y": 0.7
+        }
+      ]
+    },
+    "boxes": [
+      [
+        0.4,
+        0.3,
+        0.5,
+        0.7
+      ]
+    ]
+  },
+  {
+    "model": "qwen3-vl:4b-aegis",
+    "phase": "warm",
+    "run": 2,
+    "startedAt": "2026-11-15T05:14:19.731954+00:00",
+    "validJSON": true,
+    "seconds": 144.008,
+    "finishReason": "stop",
+    "usage": {
+      "completion_tokens": 3727,
+      "prompt_tokens": 3350,
+      "total_tokens": 7077,
+      "completion_tokens_details": null,
+      "prompt_tokens_details": {
+        "audio_tokens": null,
+        "cache_write_tokens": null,
+        "cached_tokens": 3349,
+        "image_tokens": null,
+        "text_tokens": null
+      }
+    },
+    "visibleResponseCharacters": 376,
+    "reasoningResponseCharacters": 0,
+    "result": {
+      "summary": "Detected river overtopping in Kuala Lumpur",
+      "hazards": [
+        {
+          "title": "River Overtopping",
+          "hazard_type": "RIVER_OVERTOPPING",
+          "severity": "CRITICAL",
+          "water_depth_est_m": null,
+          "impact_description": "Suspected river overtopping causing potential inundation of adjacent areas, requiring field verification.",
+          "min_x": 0.4,
+          "min_y": 0.3,
+          "max_x": 0.5,
+          "max_y": 0.7
+        }
+      ]
+    },
+    "boxes": [
+      [
+        0.4,
+        0.3,
+        0.5,
+        0.7
+      ]
+    ]
+  },
+  {
+    "model": "qwen3-vl:4b-aegis",
+    "phase": "warm",
+    "run": 3,
+    "startedAt": "2026-11-15T05:16:43.743092+00:00",
+    "validJSON": true,
+    "seconds": 153.943,
+    "finishReason": "stop",
+    "usage": {
+      "completion_tokens": 3727,
+      "prompt_tokens": 3350,
+      "total_tokens": 7077,
+      "completion_tokens_details": null,
+      "prompt_tokens_details": {
+        "audio_tokens": null,
+        "cache_write_tokens": null,
+        "cached_tokens": 3349,
+        "image_tokens": null,
+        "text_tokens": null
+      }
+    },
+    "visibleResponseCharacters": 376,
+    "reasoningResponseCharacters": 0,
+    "result": {
+      "summary": "Detected river overtopping in Kuala Lumpur",
+      "hazards": [
+        {
+          "title": "River Overtopping",
+          "hazard_type": "RIVER_OVERTOPPING",
+          "severity": "CRITICAL",
+          "water_depth_est_m": null,
+          "impact_description": "Suspected river overtopping causing potential inundation of adjacent areas, requiring field verification.",
+          "min_x": 0.4,
+          "min_y": 0.3,
+          "max_x": 0.5,
+          "max_y": 0.7
+        }
+      ]
+    },
+    "boxes": [
+      [
+        0.4,
+        0.3,
+        0.5,
+        0.7
+      ]
+    ]
+  },
+  {
+    "model": "qwen3-vl:4b-instruct-aegis",
+    "phase": "cold",
+    "run": 0,
+    "startedAt": "2026-11-15T05:19:17.847993+00:00",
+    "validJSON": true,
+    "seconds": 26.452,
+    "finishReason": "stop",
+    "usage": {
+      "completion_tokens": 168,
+      "prompt_tokens": 3350,
+      "total_tokens": 3518,
+      "completion_tokens_details": null,
+      "prompt_tokens_details": {
+        "audio_tokens": null,
+        "cache_write_tokens": null,
+        "cached_tokens": 0,
+        "image_tokens": null,
+        "text_tokens": null
+      }
+    },
+    "visibleResponseCharacters": 635,
+    "reasoningResponseCharacters": 0,
+    "result": {
+      "summary": "River overtopping observed in central urban area, with visible floodwater extending beyond natural banks. No confirmed structural collapses or landslides.",
+      "hazards": [
+        {
+          "title": "River Overtopping",
+          "hazard_type": "RIVER_OVERTOPPING",
+          "severity": "HIGH",
+          "water_depth_est_m": null,
+          "impact_description": "Floodwater has inundated adjacent urban areas beyond river banks, potentially blocking transit corridors and posing evacuation risks. Depth and extent require field verification.",
+          "min_x": 0.45,
+          "min_y": 0.35,
+          "max_x": 0.55,
+          "max_y": 0.55
+        }
+      ]
+    },
+    "boxes": [
+      [
+        0.45,
+        0.35,
+        0.55,
+        0.55
+      ]
+    ]
+  },
+  {
+    "model": "qwen3-vl:4b-instruct-aegis",
+    "phase": "warm",
+    "run": 1,
+    "startedAt": "2026-11-15T05:19:44.304405+00:00",
+    "validJSON": true,
+    "seconds": 6.132,
+    "finishReason": "stop",
+    "usage": {
+      "completion_tokens": 168,
+      "prompt_tokens": 3350,
+      "total_tokens": 3518,
+      "completion_tokens_details": null,
+      "prompt_tokens_details": {
+        "audio_tokens": null,
+        "cache_write_tokens": null,
+        "cached_tokens": 3349,
+        "image_tokens": null,
+        "text_tokens": null
+      }
+    },
+    "visibleResponseCharacters": 635,
+    "reasoningResponseCharacters": 0,
+    "result": {
+      "summary": "River overtopping observed in central urban area, with visible floodwater extending beyond natural banks. No confirmed structural collapses or landslides.",
+      "hazards": [
+        {
+          "title": "River Overtopping",
+          "hazard_type": "RIVER_OVERTOPPING",
+          "severity": "HIGH",
+          "water_depth_est_m": null,
+          "impact_description": "Floodwater has inundated adjacent urban areas beyond river banks, potentially blocking transit corridors and posing evacuation risks. Depth and extent require field verification.",
+          "min_x": 0.45,
+          "min_y": 0.35,
+          "max_x": 0.55,
+          "max_y": 0.55
+        }
+      ]
+    },
+    "boxes": [
+      [
+        0.45,
+        0.35,
+        0.55,
+        0.55
+      ]
+    ]
+  },
+  {
+    "model": "qwen3-vl:4b-instruct-aegis",
+    "phase": "warm",
+    "run": 2,
+    "startedAt": "2026-11-15T05:19:50.438052+00:00",
+    "validJSON": true,
+    "seconds": 6.193,
+    "finishReason": "stop",
+    "usage": {
+      "completion_tokens": 168,
+      "prompt_tokens": 3350,
+      "total_tokens": 3518,
+      "completion_tokens_details": null,
+      "prompt_tokens_details": {
+        "audio_tokens": null,
+        "cache_write_tokens": null,
+        "cached_tokens": 3349,
+        "image_tokens": null,
+        "text_tokens": null
+      }
+    },
+    "visibleResponseCharacters": 635,
+    "reasoningResponseCharacters": 0,
+    "result": {
+      "summary": "River overtopping observed in central urban area, with visible floodwater extending beyond natural banks. No confirmed structural collapses or landslides.",
+      "hazards": [
+        {
+          "title": "River Overtopping",
+          "hazard_type": "RIVER_OVERTOPPING",
+          "severity": "HIGH",
+          "water_depth_est_m": null,
+          "impact_description": "Floodwater has inundated adjacent urban areas beyond river banks, potentially blocking transit corridors and posing evacuation risks. Depth and extent require field verification.",
+          "min_x": 0.45,
+          "min_y": 0.35,
+          "max_x": 0.55,
+          "max_y": 0.55
+        }
+      ]
+    },
+    "boxes": [
+      [
+        0.45,
+        0.35,
+        0.55,
+        0.55
+      ]
+    ]
+  },
+  {
+    "model": "qwen3-vl:4b-instruct-aegis",
+    "phase": "warm",
+    "run": 3,
+    "startedAt": "2026-11-15T05:19:56.632364+00:00",
+    "validJSON": true,
+    "seconds": 6.419,
+    "finishReason": "stop",
+    "usage": {
+      "completion_tokens": 168,
+      "prompt_tokens": 3350,
+      "total_tokens": 3518,
+      "completion_tokens_details": null,
+      "prompt_tokens_details": {
+        "audio_tokens": null,
+        "cache_write_tokens": null,
+        "cached_tokens": 3349,
+        "image_tokens": null,
+        "text_tokens": null
+      }
+    },
+    "visibleResponseCharacters": 635,
+    "reasoningResponseCharacters": 0,
+    "result": {
+      "summary": "River overtopping observed in central urban area, with visible floodwater extending beyond natural banks. No confirmed structural collapses or landslides.",
+      "hazards": [
+        {
+          "title": "River Overtopping",
+          "hazard_type": "RIVER_OVERTOPPING",
+          "severity": "HIGH",
+          "water_depth_est_m": null,
+          "impact_description": "Floodwater has inundated adjacent urban areas beyond river banks, potentially blocking transit corridors and posing evacuation risks. Depth and extent require field verification.",
+          "min_x": 0.45,
+          "min_y": 0.35,
+          "max_x": 0.55,
+          "max_y": 0.55
+        }
+      ]
+    },
+    "boxes": [
+      [
+        0.45,
+        0.35,
+        0.55,
+        0.55
+      ]
+    ]
+  }
+]

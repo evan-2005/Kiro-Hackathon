@@ -204,7 +204,7 @@ export function computeSafeReliefZones(
           minUsableAreaSqM: minArea,
         },
       },
-      features: processedFeatures.length > 0 ? processedFeatures : (fallbackSafeZones as any).features,
+      features: processedFeatures,
     };
   } catch (error) {
     console.error('[TURF-ENGINE] Calculation failed, returning pre-calculated safe zones', error);

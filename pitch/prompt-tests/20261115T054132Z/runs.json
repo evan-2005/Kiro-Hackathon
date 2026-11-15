@@ -1,0 +1,128 @@
+[
+  {
+    "case": "synthetic-cold",
+    "seconds": 21.049,
+    "result": {
+      "type": "FeatureCollection",
+      "metadata": {
+        "source": "QWEN3_VL_LIVE_PIPELINE (qwen3-vl:4b-instruct-aegis)",
+        "summary": "No new flooding or structural damage detected. The river appears to have overflowed its banks, but no new floodwater is visible beyond the original riverbanks. No buildings or infrastructure show signs of collapse or damage.",
+        "hazardCount": 0,
+        "inferenceSeconds": 21.024,
+        "boundingBox": {
+          "minLon": 101.66,
+          "minLat": 3.11,
+          "maxLon": 101.73,
+          "maxLat": 3.17
+        }
+      },
+      "features": []
+    },
+    "boxes": []
+  },
+  {
+    "case": "synthetic-warm",
+    "seconds": 2.238,
+    "result": {
+      "type": "FeatureCollection",
+      "metadata": {
+        "source": "QWEN3_VL_LIVE_PIPELINE (qwen3-vl:4b-instruct-aegis)",
+        "summary": "No new flooding or structural damage detected. The river appears to have overflowed its banks, but no new floodwater is visible beyond the original riverbanks. No buildings or infrastructure show signs of collapse or damage.",
+        "hazardCount": 0,
+        "inferenceSeconds": 2.231,
+        "boundingBox": {
+          "minLon": 101.66,
+          "minLat": 3.11,
+          "maxLon": 101.73,
+          "maxLat": 3.17
+        }
+      },
+      "features": []
+    },
+    "boxes": []
+  },
+  {
+    "case": "synthetic-warm",
+    "seconds": 2.336,
+    "result": {
+      "type": "FeatureCollection",
+      "metadata": {
+        "source": "QWEN3_VL_LIVE_PIPELINE (qwen3-vl:4b-instruct-aegis)",
+        "summary": "No new flooding or structural damage detected. The river appears to have overflowed its banks, but no new floodwater is visible beyond the original riverbanks. No buildings or infrastructure show signs of collapse or damage.",
+        "hazardCount": 0,
+        "inferenceSeconds": 2.332,
+        "boundingBox": {
+          "minLon": 101.66,
+          "minLat": 3.11,
+          "maxLon": 101.73,
+          "maxLat": 3.17
+        }
+      },
+      "features": []
+    },
+    "boxes": []
+  },
+  {
+    "case": "synthetic-warm",
+    "seconds": 2.583,
+    "result": {
+      "type": "FeatureCollection",
+      "metadata": {
+        "source": "QWEN3_VL_LIVE_PIPELINE (qwen3-vl:4b-instruct-aegis)",
+        "summary": "No new flooding or structural damage detected. The river appears to have overflowed its banks, but no new floodwater is visible beyond the original riverbanks. No buildings or infrastructure show signs of collapse or damage.",
+        "hazardCount": 0,
+        "inferenceSeconds": 2.58,
+        "boundingBox": {
+          "minLon": 101.66,
+          "minLat": 3.11,
+          "maxLon": 101.73,
+          "maxLat": 3.17
+        }
+      },
+      "features": []
+    },
+    "boxes": []
+  },
+  {
+    "case": "no-change",
+    "seconds": 6.327,
+    "result": {
+      "type": "FeatureCollection",
+      "metadata": {
+        "source": "QWEN3_VL_LIVE_PIPELINE (qwen3-vl:4b-instruct-aegis)",
+        "summary": "No new flooding or structural damage detected. The image appears identical to the baseline.",
+        "hazardCount": 0,
+        "inferenceSeconds": 6.321,
+        "boundingBox": {
+          "minLon": 101.66,
+          "minLat": 3.11,
+          "maxLon": 101.73,
+          "maxLat": 3.17
+        }
+      },
+      "features": []
+    },
+    "boxes": []
+  },
+  {
+    "case": "cloud-limited",
+    "seconds": 12.075,
+    "result": {
+      "type": "FeatureCollection",
+      "metadata": {
+        "source": "QWEN3_VL_LIVE_PIPELINE (qwen3-vl:4b-instruct-aegis)",
+        "summary": "No detectable new flooding or structural damage beyond cloud cover and natural terrain features. The image appears to be a direct comparison with the baseline, showing no changes in land use or infrastructure that indicate hazards.",
+        "hazardCount": 0,
+        "inferenceSeconds": 12.072,
+        "boundingBox": {
+          "minLon": 101.66,
+          "minLat": 3.11,
+          "maxLon": 101.73,
+          "maxLat": 3.17
+        }
+      },
+      "features": []
+    },
+    "boxes": []
+  }
+]

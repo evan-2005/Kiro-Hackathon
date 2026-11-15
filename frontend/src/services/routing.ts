@@ -1,4 +1,5 @@
 import * as turf from '@turf/turf';
+import type { Feature, Polygon, MultiPolygon } from 'geojson';
 import fallbackRoute from '@shared/fallback_route.json';
 import fallbackDamage from '@shared/fallback_damage.json';
 import { GeoJsonFeatureCollection } from './api';
@@ -34,7 +35,7 @@ export function extractHazardAvoidancePoints(
   directRouteLine?: any
 ): Array<[number, number]> {
   const points: Array<[number, number]> = [];
-  const hazardFeatures = hazards?.features?.length ? hazards.features : (fallbackDamage as any).features || [];
+  const hazardFeatures = hazards?.features ?? (fallbackDamage as any).features;
 
   for (const hazard of hazardFeatures) {
     if (!hazard.geometry) continue;
@@ -86,11 +87,31 @@ export async function calculateRescueRoute(
 ): Promise<GeoJsonFeatureCollection> {
   const cleanStart = sanitizeCoord(startCoord);
   const cleanDest = sanitizeCoord(destinationCoord);
+  const hazardFeatures = Array.isArray(hazardsOrAvoidPoints)
+    ? fallbackDamage.features
+    : hazardsOrAvoidPoints?.features ?? fallbackDamage.features;
+  const routeIsBlocked = (geometry: any) => hazardFeatures.some(hazard => {
+    const buffered = turf.buffer(hazard as Feature<Polygon | MultiPolygon>, 0.15, { units: 'kilometers' });
+    if (!buffered) throw new Error('Hazard buffer could not be validated');
+    return turf.booleanIntersects(turf.feature(geometry), buffered);
+  });
+  const cachedRoute = (reason: string): GeoJsonFeatureCollection => {
+    const evacuation = fallbackRoute.features.find(feature => feature.id === 'evacuation-route')!;
+    const coordinates = evacuation.geometry.coordinates as number[][];
+    if (routeIsBlocked(evacuation.geometry)
+      || turf.distance(turf.point(cleanStart), turf.point(coordinates[0])) > 0.1
+      || turf.distance(turf.point(cleanDest), turf.point(coordinates[coordinates.length - 1])) > 0.1) {
+      throw new Error('No validated rescue corridor available for this hazard and destination');
+    }
+    return { ...fallbackRoute, metadata: {
+      ...fallbackRoute.metadata, engine: 'CACHED_DEMO_ROUTE', fallbackReason: reason,
+    } } as unknown as GeoJsonFeatureCollection;
+  };
 
   // If no Mapbox token is supplied or placeholder is used, return the golden avoidance route immediately
   if (!MAPBOX_TOKEN || MAPBOX_TOKEN.includes('your-username') || MAPBOX_TOKEN.includes('example')) {
     console.info('[ROUTER] Using pre-computed tactical route (Mapbox token not provided or demo fallback)');
-    return fallbackRoute as unknown as GeoJsonFeatureCollection;
+    return cachedRoute('Mapbox token unavailable');
   }
 
   try {
@@ -102,7 +123,7 @@ export async function calculateRescueRoute(
     let directDistanceKm = '2.40';
 
     try {
-      const directRes = await fetch(directUrl);
+      const directRes = await fetch(directUrl, { signal: AbortSignal.timeout(6000) });
       if (directRes.ok) {
         const directData = await directRes.json();
         if (directData.code === 'Ok' && directData.routes?.[0]?.geometry) {
@@ -146,7 +167,7 @@ export async function calculateRescueRoute(
       const safeUrl = `https://api.mapbox.com/directions/v5/mapbox/driving/${coordsQuery}?geometries=geojson&overview=full&exclude=${encodeURIComponent(excludeParam)}&access_token=${MAPBOX_TOKEN}`;
       
       try {
-        const safeRes = await fetch(safeUrl);
+        const safeRes = await fetch(safeUrl, { signal: AbortSignal.timeout(6000) });
         if (safeRes.ok) {
           const safeData = await safeRes.json();
           if (safeData.code === 'Ok' && safeData.routes?.[0]?.geometry) {
@@ -164,10 +185,10 @@ export async function calculateRescueRoute(
       }
     }
 
-    // If Mapbox Directions exclusion fails or produces no path, fall back to pre-computed golden avoidance route
-    if (!avoidanceRouteGeom) {
-      const fallbackEvacuation = (fallbackRoute as any).features.find((f: any) => f.id === 'evacuation-route');
-      avoidanceRouteGeom = fallbackEvacuation?.geometry;
+    if (avoidPoints.length === 0) avoidanceRouteGeom = directRouteGeom;
+    // Excluding points does not guarantee that Mapbox avoids the whole flood polygon.
+    if (!avoidanceRouteGeom || routeIsBlocked(avoidanceRouteGeom)) {
+      return cachedRoute('Live route unavailable or intersects the 150m hazard buffer');
     }
 
     // Assemble GeoJSON collection with both compromised and safe routes
@@ -233,6 +254,6 @@ export async function calculateRescueRoute(
     };
   } catch (err) {
     console.warn('[ROUTER] Live route calculation failed, falling back to cached tactical corridor:', err);
-    return fallbackRoute as unknown as GeoJsonFeatureCollection;
+    return cachedRoute('Live route calculation failed');
   }
 }

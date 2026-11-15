@@ -51,3 +51,5 @@ frontend/dist-ssr/
 *.sw?
 
 DEV1_PLAYBOOK.md
+# Separate Sites deployment checkout
+/sites/aegis-kl-demo/
