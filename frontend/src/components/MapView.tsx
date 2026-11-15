@@ -1,8 +1,47 @@
 import React, { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
+import * as turf from '@turf/turf';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import missionConfig from '@shared/config.json';
 import { GeoJsonFeatureCollection } from '../services/api';
+
+type MissionStage = 'IDLE' | 'HAZARDS_DETECTED' | 'SAFE_ZONES_COMPUTED' | 'ROUTE_DISPATCHED';
+
+interface StageCamera {
+  center: [number, number]; // [lon, lat]
+  zoom: number;
+  pitch: number;
+  bearing: number;
+  duration: number;
+}
+
+// DESIGN.md §6 camera per stage. Angles/timing always used; center/zoom only when there is no data to frame.
+const STAGE_CAMERA: Record<Exclude<MissionStage, 'IDLE'>, StageCamera> = {
+  HAZARDS_DETECTED: { center: [101.6935, 3.1420], zoom: 14.8, pitch: 58, bearing: -10, duration: 2500 },
+  SAFE_ZONES_COMPUTED: { center: [101.6980, 3.1360], zoom: 14.2, pitch: 50, bearing: 15, duration: 2500 },
+  ROUTE_DISPATCHED: { center: [101.6940, 3.1360], zoom: 14.5, pitch: 62, bearing: 45, duration: 3000 },
+};
+const FIT_PADDING = 80;
+const FIT_MAX_ZOOM = 15.5;
+const RESET_DURATION_MS = 2000;
+
+/** Bounds [[minLon, minLat], [maxLon, maxLat]] of all features in the given collections, or null. */
+const getBounds = (
+  collections: Array<GeoJsonFeatureCollection | null | undefined>
+): [[number, number], [number, number]] | null => {
+  const features = collections.flatMap((fc) => (fc?.features?.length ? fc.features : []));
+  if (features.length === 0) return null;
+  try {
+    const [minLon, minLat, maxLon, maxLat] = turf.bbox(turf.featureCollection(features));
+    if (![minLon, minLat, maxLon, maxLat].every(Number.isFinite)) return null;
+    return [
+      [minLon, minLat],
+      [maxLon, maxLat],
+    ];
+  } catch {
+    return null;
+  }
+};
 
 interface MapViewProps {
   hazardData: GeoJsonFeatureCollection | null;
@@ -90,6 +129,8 @@ export const MapView: React.FC<MapViewProps> = ({
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const popupRef = useRef<mapboxgl.Popup | null>(null);
   const routeMarkersRef = useRef<mapboxgl.Marker[]>([]);
+  // Last stage the camera animated to; starts at IDLE so the map does not move at boot
+  const lastAnimatedStageRef = useRef<MissionStage>('IDLE');
   const [mapLoaded, setMapLoaded] = useState(false);
   const [tokenMissing, setTokenMissing] = useState(false);
 
@@ -457,37 +498,56 @@ export const MapView: React.FC<MapViewProps> = ({
     }
   }, [stage]);
 
-  // Camera Choreography per Stage
+  // Camera Choreography per Stage: frame the actual data, animate once per stage change
   useEffect(() => {
-    if (!mapRef.current || !mapLoaded) return;
     const map = mapRef.current;
+    if (!map || !mapLoaded) return;
+    if (lastAnimatedStageRef.current === stage) return;
+    lastAnimatedStageRef.current = stage;
 
-    if (stage === 'HAZARDS_DETECTED') {
+    if (stage === 'IDLE') {
+      // Reset: fly back to the boot camera (padding 0 clears the padding fitBounds leaves behind)
       map.flyTo({
-        center: [101.6935, 3.1420],
-        zoom: 14.8,
-        pitch: 58,
-        bearing: -10,
-        duration: 2500,
+        center: missionConfig.spatial.center as [number, number],
+        zoom: missionConfig.spatial.zoom,
+        pitch: missionConfig.spatial.pitch,
+        bearing: missionConfig.spatial.bearing,
+        padding: 0,
+        duration: RESET_DURATION_MS,
+        essential: true,
       });
-    } else if (stage === 'SAFE_ZONES_COMPUTED') {
-      map.flyTo({
-        center: [101.6980, 3.1360],
-        zoom: 14.2,
-        pitch: 50,
-        bearing: 15,
-        duration: 2500,
+      return;
+    }
+
+    const camera = STAGE_CAMERA[stage];
+    const bounds =
+      stage === 'HAZARDS_DETECTED'
+        ? getBounds([hazardData])
+        : stage === 'SAFE_ZONES_COMPUTED'
+          ? getBounds([hazardData, safeZoneData])
+          : getBounds([routeData, hazardData]);
+
+    if (bounds) {
+      map.fitBounds(bounds, {
+        padding: FIT_PADDING,
+        pitch: camera.pitch,
+        bearing: camera.bearing,
+        duration: camera.duration,
+        maxZoom: FIT_MAX_ZOOM,
+        essential: true,
       });
-    } else if (stage === 'ROUTE_DISPATCHED') {
+    } else {
       map.flyTo({
-        center: [101.6940, 3.1360],
-        zoom: 14.5,
-        pitch: 62,
-        bearing: 45,
-        duration: 3000,
+        center: camera.center,
+        zoom: camera.zoom,
+        pitch: camera.pitch,
+        bearing: camera.bearing,
+        padding: 0,
+        duration: camera.duration,
+        essential: true,
       });
     }
-  }, [stage, mapLoaded]);
+  }, [stage, mapLoaded, hazardData, safeZoneData, routeData]);
 
   return (
     <div className="relative w-full h-full bg-[#070B12]">
