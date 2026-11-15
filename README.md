@@ -2,6 +2,7 @@
 
 > **Rapid orbital damage detection (`qwen3-vl:4b`), spatial safe-zone siting (`Turf.js`), and emergency avoidance routing (`Mapbox GL`).**  
 > Built for a 3-developer, 5-hour hackathon sprint with zero dependency bottlenecks and 100% offline fallback resilience.
+<img width="581" height="814" alt="image" src="https://github.com/user-attachments/assets/b9c660c8-1816-49e0-a640-d4fa01256cf2" />
 
 ---
 
