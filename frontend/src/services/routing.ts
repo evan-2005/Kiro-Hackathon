@@ -14,6 +14,7 @@ import { GeoJsonFeatureCollection } from './api';
  */
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || '';
+const ALPHA_DESTINATION: [number, number] = [101.7015, 3.1418];
 
 /**
  * Sanitizes coordinate order: [lon, lat] for Klang River Basin.
@@ -24,6 +25,57 @@ function sanitizeCoord(coord: [number, number]): [number, number] {
     [lon, lat] = [lat, lon];
   }
   return [lon, lat];
+}
+
+/**
+ * Checks whether a destination coordinate is close to Relief Camp Alpha (~300m threshold).
+ */
+export function isNearAlpha(destCoord: [number, number]): boolean {
+  try {
+    const destPt = turf.point(destCoord);
+    const alphaPt = turf.point(ALPHA_DESTINATION);
+    return turf.distance(destPt, alphaPt, { units: 'kilometers' }) < 0.3;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Checks whether a given route geometry crosses or enters any hazard polygon.
+ */
+export function isRouteIntersectingHazards(
+  routeGeometry: any,
+  hazards?: GeoJsonFeatureCollection | null
+): boolean {
+  if (!routeGeometry) return false;
+  const hazardFeatures = hazards?.features?.length
+    ? hazards.features
+    : (fallbackDamage as any).features || [];
+
+  const routeFeature = routeGeometry.type === 'Feature'
+    ? routeGeometry
+    : { type: 'Feature', geometry: routeGeometry, properties: {} };
+
+  for (const hazard of hazardFeatures) {
+    if (!hazard.geometry) continue;
+    try {
+      // 1. Check if line segments cross the hazard boundary
+      const intersections = turf.lineIntersect(routeFeature, hazard);
+      if (intersections.features.length > 0) {
+        return true;
+      }
+      // 2. Check if any waypoint on the line is inside the hazard polygon
+      const coords = routeGeometry.coordinates || [];
+      for (const pt of coords) {
+        if (turf.booleanPointInPolygon(turf.point(pt), hazard)) {
+          return true;
+        }
+      }
+    } catch (e) {
+      console.warn('[ROUTER] Hazard intersection check error:', e);
+    }
+  }
+  return false;
 }
 
 /**
@@ -86,11 +138,58 @@ export async function calculateRescueRoute(
 ): Promise<GeoJsonFeatureCollection> {
   const cleanStart = sanitizeCoord(startCoord);
   const cleanDest = sanitizeCoord(destinationCoord);
+  const destinationIsAlpha = isNearAlpha(cleanDest);
 
-  // If no Mapbox token is supplied or placeholder is used, return the golden avoidance route immediately
+  const activeHazards: GeoJsonFeatureCollection | null = Array.isArray(hazardsOrAvoidPoints)
+    ? null
+    : (hazardsOrAvoidPoints || (fallbackDamage as unknown as GeoJsonFeatureCollection));
+
+  // If no Mapbox token is supplied or placeholder is used, handle offline fallback
   if (!MAPBOX_TOKEN || MAPBOX_TOKEN.includes('your-username') || MAPBOX_TOKEN.includes('example')) {
     console.info('[ROUTER] Using pre-computed tactical route (Mapbox token not provided or demo fallback)');
-    return fallbackRoute as unknown as GeoJsonFeatureCollection;
+    if (destinationIsAlpha) {
+      return fallbackRoute as unknown as GeoJsonFeatureCollection;
+    }
+    // If destination is another camp and offline, do not draw the Alpha line to the wrong camp
+    const fallbackDirect = (fallbackRoute as any).features.find((f: any) => f.id === 'compromised-route');
+    return {
+      type: 'FeatureCollection',
+      metadata: {
+        engine: 'Offline Golden Cache (No Mapbox Token)',
+        status: 'NO_SAFE_CORRIDOR_FOUND',
+        compromisedDistanceKm: '2.40',
+        safeDistanceKm: null,
+        durationMin: null,
+        message: 'Offline bypass route is only pre-cached for Camp Alpha.',
+      },
+      features: [
+        {
+          type: 'Feature',
+          id: 'start-point',
+          properties: { title: 'Trapped Civilians / Ambulance', type: 'START', icon: 'ambulance', color: '#FFB800' },
+          geometry: { type: 'Point', coordinates: cleanStart },
+        },
+        {
+          type: 'Feature',
+          id: 'destination-point',
+          properties: { title: 'Selected Safe Zone', type: 'DESTINATION', icon: 'shield-check', color: '#00F0FF' },
+          geometry: { type: 'Point', coordinates: cleanDest },
+        },
+        {
+          type: 'Feature',
+          id: 'compromised-route',
+          properties: {
+            title: 'Standard Direct Route (COMPROMISED)',
+            status: 'IMPASSABLE',
+            stroke: '#94A3B8',
+            strokeWidth: 3,
+            strokeDasharray: [2, 2],
+            warning: 'Crosses into critical flood/washout corridor',
+          },
+          geometry: fallbackDirect?.geometry || { type: 'LineString', coordinates: [cleanStart, cleanDest] },
+        },
+      ],
+    };
   }
 
   try {
@@ -118,10 +217,10 @@ export async function calculateRescueRoute(
       console.warn('[ROUTER] Direct route fetch error:', directErr);
     }
 
-    // Fallback direct route geometry from golden cache if needed
+    // Fallback direct route geometry if needed
     if (!directRouteGeom) {
       const fallbackCompromised = (fallbackRoute as any).features.find((f: any) => f.id === 'compromised-route');
-      directRouteGeom = fallbackCompromised?.geometry;
+      directRouteGeom = fallbackCompromised?.geometry || { type: 'LineString', coordinates: [cleanStart, cleanDest] };
     }
 
     // 2. Resolve avoidance points
@@ -132,11 +231,12 @@ export async function calculateRescueRoute(
       avoidPoints = extractHazardAvoidancePoints(hazardsOrAvoidPoints, directRouteGeom);
     }
 
-    // 3. Fetch the hazard-avoiding rescue route with exclusion points
+    // 3. Attempt to fetch a live hazard-avoiding route from Mapbox
     let avoidanceRouteGeom: any = null;
-    let safeDistanceKm = '3.80';
-    let durationMin = '9.4';
+    let safeDistanceKm: string | null = null;
+    let durationMin: string | null = null;
 
+    // Attempt A: Direct Mapbox query with exclude=point(...)
     if (avoidPoints.length > 0) {
       const excludeParam = avoidPoints
         .slice(0, 5)
@@ -144,95 +244,168 @@ export async function calculateRescueRoute(
         .join(',');
 
       const safeUrl = `https://api.mapbox.com/directions/v5/mapbox/driving/${coordsQuery}?geometries=geojson&overview=full&exclude=${encodeURIComponent(excludeParam)}&access_token=${MAPBOX_TOKEN}`;
-      
+
       try {
         const safeRes = await fetch(safeUrl);
         if (safeRes.ok) {
           const safeData = await safeRes.json();
           if (safeData.code === 'Ok' && safeData.routes?.[0]?.geometry) {
-            avoidanceRouteGeom = safeData.routes[0].geometry;
-            if (safeData.routes[0].distance) {
+            const candidateGeom = safeData.routes[0].geometry;
+            // Validate: route MUST NOT cross the hazard polygon
+            if (!isRouteIntersectingHazards(candidateGeom, activeHazards)) {
+              avoidanceRouteGeom = candidateGeom;
               safeDistanceKm = ((safeData.routes[0].distance || 0) / 1000).toFixed(2);
               durationMin = ((safeData.routes[0].duration || 0) / 60).toFixed(1);
+            } else {
+              console.warn('[ROUTER] Mapbox excluded route still intersects hazard zone, attempting bypass waypoint.');
             }
           }
-        } else {
-          console.warn(`[ROUTER] Excluded route returned HTTP ${safeRes.status}, falling back to cache.`);
         }
       } catch (safeErr) {
         console.warn('[ROUTER] Excluded route fetch error:', safeErr);
       }
     }
 
-    // If Mapbox Directions exclusion fails or produces no path, fall back to pre-computed golden avoidance route
-    if (!avoidanceRouteGeom) {
-      const fallbackEvacuation = (fallbackRoute as any).features.find((f: any) => f.id === 'evacuation-route');
-      avoidanceRouteGeom = fallbackEvacuation?.geometry;
+    // Attempt B: If Attempt A crossed the hazard or failed, attempt bypass waypoint around the hazard perimeter
+    if (!avoidanceRouteGeom && activeHazards?.features?.length) {
+      try {
+        // Derive southern bypass waypoint outside the hazard envelope
+        const bbox = turf.bbox(activeHazards); // [minLon, minLat, maxLon, maxLat]
+        const southWaypoint: [number, number] = [
+          Number(((bbox[0] + bbox[2]) / 2).toFixed(4)),
+          Number((bbox[1] - 0.005).toFixed(4)), // 500m south of flood envelope
+        ];
+        const bypassQuery = `${cleanStart[0]},${cleanStart[1]};${southWaypoint[0]},${southWaypoint[1]};${cleanDest[0]},${cleanDest[1]}`;
+        const bypassUrl = `https://api.mapbox.com/directions/v5/mapbox/driving/${bypassQuery}?geometries=geojson&overview=full&access_token=${MAPBOX_TOKEN}`;
+
+        const bypassRes = await fetch(bypassUrl);
+        if (bypassRes.ok) {
+          const bypassData = await bypassRes.json();
+          if (bypassData.code === 'Ok' && bypassData.routes?.[0]?.geometry) {
+            const candidateBypass = bypassData.routes[0].geometry;
+            if (!isRouteIntersectingHazards(candidateBypass, activeHazards)) {
+              avoidanceRouteGeom = candidateBypass;
+              safeDistanceKm = ((bypassData.routes[0].distance || 0) / 1000).toFixed(2);
+              durationMin = ((bypassData.routes[0].duration || 0) / 60).toFixed(1);
+              console.info('[ROUTER] Successfully resolved safe corridor via southern bypass perimeter.');
+            }
+          }
+        }
+      } catch (bypassErr) {
+        console.warn('[ROUTER] Bypass waypoint routing attempt failed:', bypassErr);
+      }
     }
 
-    // Assemble GeoJSON collection with both compromised and safe routes
+    // Attempt C: Golden fallback corridor ONLY IF destination is Relief Camp Alpha
+    if (!avoidanceRouteGeom && destinationIsAlpha) {
+      const fallbackEvacuation = (fallbackRoute as any).features.find((f: any) => f.id === 'evacuation-route');
+      if (fallbackEvacuation?.geometry && !isRouteIntersectingHazards(fallbackEvacuation.geometry, activeHazards)) {
+        avoidanceRouteGeom = fallbackEvacuation.geometry;
+        safeDistanceKm = '3.80';
+        durationMin = '9.4';
+      }
+    }
+
+    // If no safe route could be found, safeDistanceKm remains null (no fake numbers)
+    const isAvoidanceSuccess = avoidanceRouteGeom !== null;
+
+    const resultFeatures: any[] = [
+      {
+        type: 'Feature',
+        id: 'start-point',
+        properties: {
+          title: 'Trapped Civilians / Ambulance',
+          type: 'START',
+          icon: 'ambulance',
+          color: '#FFB800',
+        },
+        geometry: { type: 'Point', coordinates: cleanStart },
+      },
+      {
+        type: 'Feature',
+        id: 'destination-point',
+        properties: {
+          title: destinationIsAlpha ? 'Optimal Relief Camp Alpha' : 'Selected Relief Camp',
+          type: 'DESTINATION',
+          icon: 'shield-check',
+          color: '#00F0FF',
+        },
+        geometry: { type: 'Point', coordinates: cleanDest },
+      },
+      {
+        type: 'Feature',
+        id: 'compromised-route',
+        properties: {
+          title: 'Standard Direct Route (COMPROMISED)',
+          status: 'IMPASSABLE',
+          stroke: '#94A3B8',
+          strokeWidth: 3,
+          strokeDasharray: [2, 2],
+          warning: 'Crosses into critical flood/washout corridor',
+        },
+        geometry: directRouteGeom,
+      },
+    ];
+
+    // Only draw the green evacuation route if a verified safe route reaching the marker actually exists
+    if (isAvoidanceSuccess) {
+      resultFeatures.push({
+        type: 'Feature',
+        id: 'evacuation-route',
+        properties: {
+          title: 'Dynamic Rescue Corridor (OPTIMIZED)',
+          status: 'ACTIVE_SECURE',
+          stroke: '#00FF66',
+          strokeWidth: 5,
+          hazardAvoidanceSuccess: true,
+        },
+        geometry: avoidanceRouteGeom,
+      });
+    }
+
     return {
       type: 'FeatureCollection',
       metadata: {
         engine: 'Mapbox Directions API Live Dual-Corridor',
-        status: 'SAFE_CORRIDOR_CALCULATED',
+        status: isAvoidanceSuccess ? 'SAFE_CORRIDOR_CALCULATED' : 'NO_SAFE_CORRIDOR_FOUND',
         compromisedDistanceKm: directDistanceKm,
-        safeDistanceKm,
-        durationMin,
+        safeDistanceKm: safeDistanceKm, // null when no route found (no fake numbers)
+        durationMin: durationMin,       // null when no route found
         avoidancePointsApplied: avoidPoints.length,
+        hazardAvoidanceVerified: isAvoidanceSuccess,
+        warning: isAvoidanceSuccess ? undefined : 'No road avoids the active hazard envelope to this destination.',
+      },
+      features: resultFeatures,
+    };
+  } catch (err) {
+    console.warn('[ROUTER] Live route calculation failed:', err);
+    if (destinationIsAlpha) {
+      return fallbackRoute as unknown as GeoJsonFeatureCollection;
+    }
+    return {
+      type: 'FeatureCollection',
+      metadata: {
+        engine: 'Mapbox Directions Error Fallback',
+        status: 'NO_SAFE_CORRIDOR_FOUND',
+        compromisedDistanceKm: '2.40',
+        safeDistanceKm: null,
+        durationMin: null,
+        warning: 'Routing failed and no fallback route exists for this destination.',
       },
       features: [
         {
           type: 'Feature',
           id: 'start-point',
-          properties: {
-            title: 'Trapped Civilians / Ambulance',
-            type: 'START',
-            icon: 'ambulance',
-            color: '#FFB800',
-          },
+          properties: { title: 'Trapped Civilians / Ambulance', type: 'START', color: '#FFB800' },
           geometry: { type: 'Point', coordinates: cleanStart },
         },
         {
           type: 'Feature',
           id: 'destination-point',
-          properties: {
-            title: 'Optimal Relief Camp Alpha',
-            type: 'DESTINATION',
-            icon: 'shield-check',
-            color: '#00F0FF',
-          },
+          properties: { title: 'Selected Relief Camp', type: 'DESTINATION', color: '#00F0FF' },
           geometry: { type: 'Point', coordinates: cleanDest },
-        },
-        {
-          type: 'Feature',
-          id: 'compromised-route',
-          properties: {
-            title: 'Standard Direct Route (COMPROMISED)',
-            status: 'IMPASSABLE',
-            stroke: '#94A3B8',
-            strokeWidth: 3,
-            strokeDasharray: [2, 2],
-            warning: 'Crosses into critical flood/washout corridor',
-          },
-          geometry: directRouteGeom,
-        },
-        {
-          type: 'Feature',
-          id: 'evacuation-route',
-          properties: {
-            title: 'Dynamic Rescue Corridor (OPTIMIZED)',
-            status: 'ACTIVE_SECURE',
-            stroke: '#00FF66',
-            strokeWidth: 5,
-            hazardAvoidanceSuccess: true,
-          },
-          geometry: avoidanceRouteGeom,
         },
       ],
     };
-  } catch (err) {
-    console.warn('[ROUTER] Live route calculation failed, falling back to cached tactical corridor:', err);
-    return fallbackRoute as unknown as GeoJsonFeatureCollection;
   }
 }
