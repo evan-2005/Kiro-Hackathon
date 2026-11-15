@@ -69,9 +69,9 @@ export const TacticalHUD: React.FC<TacticalHUDProps> = ({
         <button
           onClick={onScanTelemetry}
           disabled={isLoading || stage !== 'IDLE'}
-          className={`w-full text-left p-3 rounded-lg border transition-all flex items-start gap-3 relative overflow-hidden ${
+          className={`w-full text-left p-3 rounded-lg border transition-all flex items-start gap-3 relative overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-radar-crimson focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B111E] ${
             stage === 'IDLE'
-              ? 'bg-slate-900/90 border-radar-crimson/50 hover:border-radar-crimson hover:shadow-[0_0_15px_rgba(255,0,85,0.25)] text-slate-100 cursor-pointer'
+              ? `bg-slate-900/90 border-radar-crimson/50 hover:border-radar-crimson hover:shadow-[0_0_15px_rgba(255,0,85,0.25)] text-slate-100 cursor-pointer ${isLoading ? '' : 'step-glow-crimson'}`
               : stage === 'HAZARDS_DETECTED' || stage === 'SAFE_ZONES_COMPUTED' || stage === 'ROUTE_DISPATCHED'
               ? 'bg-slate-900/40 border-slate-800 text-slate-400 opacity-80 cursor-default'
               : 'opacity-50 cursor-not-allowed border-slate-800'
@@ -81,7 +81,7 @@ export const TacticalHUD: React.FC<TacticalHUDProps> = ({
             <Satellite className="w-4 h-4" />
           </div>
           <div className="flex-1">
-            <div className="text-xs font-bold tracking-wide flex items-center justify-between">
+            <div className="text-xs font-bold tracking-wide uppercase flex items-center justify-between">
               <span>[01] INGEST SATELLITE DATA</span>
               {stage !== 'IDLE' && <span className="text-[10px] text-radar-crimson font-mono">COMPLETE</span>}
             </div>
@@ -95,9 +95,9 @@ export const TacticalHUD: React.FC<TacticalHUDProps> = ({
         <button
           onClick={onComputeSafeZones}
           disabled={isLoading || stage !== 'HAZARDS_DETECTED'}
-          className={`w-full text-left p-3 rounded-lg border transition-all flex items-start gap-3 relative overflow-hidden ${
+          className={`w-full text-left p-3 rounded-lg border transition-all flex items-start gap-3 relative overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-radar-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B111E] ${
             stage === 'HAZARDS_DETECTED'
-              ? 'bg-slate-900/90 border-radar-cyan/60 hover:border-radar-cyan hover:shadow-[0_0_15px_rgba(0,240,255,0.25)] text-slate-100 cursor-pointer animate-pulse'
+              ? `bg-slate-900/90 border-radar-cyan/60 hover:border-radar-cyan hover:shadow-[0_0_15px_rgba(0,240,255,0.25)] text-slate-100 cursor-pointer ${isLoading ? '' : 'step-glow-cyan'}`
               : stage === 'SAFE_ZONES_COMPUTED' || stage === 'ROUTE_DISPATCHED'
               ? 'bg-slate-900/40 border-slate-800 text-slate-400 opacity-80 cursor-default'
               : 'opacity-40 cursor-not-allowed border-slate-800 text-slate-500'
@@ -107,7 +107,7 @@ export const TacticalHUD: React.FC<TacticalHUDProps> = ({
             <ShieldCheck className="w-4 h-4" />
           </div>
           <div className="flex-1">
-            <div className="text-xs font-bold tracking-wide flex items-center justify-between">
+            <div className="text-xs font-bold tracking-wide uppercase flex items-center justify-between">
               <span>[02] COMPUTE RELIEF CAMPS</span>
               {stage === 'SAFE_ZONES_COMPUTED' || stage === 'ROUTE_DISPATCHED' ? (
                 <span className="text-[10px] text-radar-cyan font-mono">RESOLVED</span>
@@ -123,9 +123,9 @@ export const TacticalHUD: React.FC<TacticalHUDProps> = ({
         <button
           onClick={onDispatchRoute}
           disabled={isLoading || stage !== 'SAFE_ZONES_COMPUTED'}
-          className={`w-full text-left p-3 rounded-lg border transition-all flex items-start gap-3 relative overflow-hidden ${
+          className={`w-full text-left p-3 rounded-lg border transition-all flex items-start gap-3 relative overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-radar-green focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B111E] ${
             stage === 'SAFE_ZONES_COMPUTED'
-              ? 'bg-slate-900/90 border-radar-green/60 hover:border-radar-green hover:shadow-[0_0_15px_rgba(0,255,102,0.25)] text-slate-100 cursor-pointer animate-pulse'
+              ? `bg-slate-900/90 border-radar-green/60 hover:border-radar-green hover:shadow-[0_0_15px_rgba(0,255,102,0.25)] text-slate-100 cursor-pointer ${isLoading ? '' : 'step-glow-green'}`
               : stage === 'ROUTE_DISPATCHED'
               ? 'bg-slate-900/40 border-slate-800 text-slate-400 opacity-80 cursor-default'
               : 'opacity-40 cursor-not-allowed border-slate-800 text-slate-500'
@@ -135,7 +135,7 @@ export const TacticalHUD: React.FC<TacticalHUDProps> = ({
             <Navigation className="w-4 h-4" />
           </div>
           <div className="flex-1">
-            <div className="text-xs font-bold tracking-wide flex items-center justify-between">
+            <div className="text-xs font-bold tracking-wide uppercase flex items-center justify-between">
               <span>[03] DISPATCH RESCUE CORRIDOR</span>
               {stage === 'ROUTE_DISPATCHED' && (
                 <span className="text-[10px] text-radar-green font-mono">DEPLOYED</span>
@@ -150,7 +150,7 @@ export const TacticalHUD: React.FC<TacticalHUDProps> = ({
         {/* Reset / Replay Demo */}
         <button
           onClick={onReset}
-          className="w-full py-2 px-3 rounded bg-slate-900 border border-slate-800 hover:border-slate-600 text-xs text-slate-400 hover:text-slate-200 transition-colors flex items-center justify-center gap-1.5"
+          className="w-full py-2 px-3 rounded bg-slate-900 border border-slate-800 hover:border-slate-600 text-xs text-slate-400 hover:text-slate-200 transition-colors flex items-center justify-center gap-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B111E]"
         >
           <RotateCcw className="w-3.5 h-3.5" />
           <span>Reset Terminal State</span>
@@ -158,7 +158,7 @@ export const TacticalHUD: React.FC<TacticalHUDProps> = ({
       </div>
 
       {/* Intelligence Cards Section */}
-      <div className="px-4 py-2 flex-1 overflow-y-auto space-y-3">
+      <div className="px-4 pb-4 flex-1 overflow-y-auto space-y-3">
         {hazardData && hazardData.features.length > 0 && (
           <div className="p-3 rounded-lg bg-radar-crimson/5 border border-radar-crimson/30">
             <div className="flex items-center gap-2 text-radar-crimson text-xs font-bold mb-1.5">
@@ -206,8 +206,8 @@ export const TacticalHUD: React.FC<TacticalHUDProps> = ({
       </div>
 
       {/* Real-time Tactical Terminal Logs */}
-      <div className="p-3 border-t border-slate-800 bg-[#070B12]/90 flex-shrink-0">
-        <div className="flex items-center gap-1.5 text-[10px] font-mono text-slate-400 mb-1.5">
+      <div className="p-4 border-t border-slate-800 bg-[#070B12]/90 flex-shrink-0">
+        <div className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-slate-400 mb-1.5">
           <Terminal className="w-3 h-3 text-radar-cyan" />
           <span>AEGIS TELEMETRY STREAM</span>
         </div>
