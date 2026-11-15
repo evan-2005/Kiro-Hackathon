@@ -15,15 +15,35 @@ interface StageCamera {
   duration: number;
 }
 
-// DESIGN.md §6 camera per stage. Angles/timing always used; center/zoom only when there is no data to frame.
+// DESIGN.md colour tokens (standard emergency semantics)
+const COLOR = {
+  base: '#0F1115',
+  flood: '#E5484D',
+  shelter: '#3B82F6',
+  route: '#30A46C',
+  routeCasing: '#0B1A12',
+  blocked: '#8B95A1',
+  building: '#262B33',
+};
+
+// North-up camera (responders give directions by compass), moderate tilt so terrain still reads.
+// Center/zoom come from shared config; pitch/bearing are a deliberate DESIGN.md override.
+const BOOT_CAMERA = {
+  center: missionConfig.spatial.center as [number, number],
+  zoom: missionConfig.spatial.zoom,
+  pitch: 40,
+  bearing: 0,
+};
+
+// Per-stage camera. Angles/timing always used; center/zoom only when there is no data to frame.
 const STAGE_CAMERA: Record<Exclude<MissionStage, 'IDLE'>, StageCamera> = {
-  HAZARDS_DETECTED: { center: [101.6935, 3.1420], zoom: 14.8, pitch: 58, bearing: -10, duration: 2500 },
-  SAFE_ZONES_COMPUTED: { center: [101.6980, 3.1360], zoom: 14.2, pitch: 50, bearing: 15, duration: 2500 },
-  ROUTE_DISPATCHED: { center: [101.6940, 3.1360], zoom: 14.5, pitch: 62, bearing: 45, duration: 3000 },
+  HAZARDS_DETECTED: { center: [101.6935, 3.1420], zoom: 14.8, pitch: 40, bearing: 0, duration: 1800 },
+  SAFE_ZONES_COMPUTED: { center: [101.6980, 3.1360], zoom: 14.2, pitch: 40, bearing: 0, duration: 1800 },
+  ROUTE_DISPATCHED: { center: [101.6940, 3.1360], zoom: 14.5, pitch: 45, bearing: 0, duration: 2000 },
 };
 const FIT_PADDING = 80;
 const FIT_MAX_ZOOM = 15.5;
-const RESET_DURATION_MS = 2000;
+const RESET_DURATION_MS = 1500;
 
 /** Bounds [[minLon, minLat], [maxLon, maxLat]] of all features in the given collections, or null. */
 const getBounds = (
@@ -69,7 +89,8 @@ const DASH_ARRAY_SEQUENCE: number[][] = [
   [0, 3, 3, 1],
   [0, 3.5, 3, 0.5],
 ];
-const DASH_STEP_MS = 50;
+// Slow, subtle travel-direction dashes (not a light show)
+const DASH_STEP_MS = 90;
 
 interface RoutePointFeature {
   id?: string | number;
@@ -91,33 +112,57 @@ const el = (tag: string, className: string, text?: string): HTMLElement => {
   return node;
 };
 
+/** "RIVER_OVERTOPPING" → "River overtopping" */
+const humanize = (v: unknown): string => {
+  if (isMissing(v)) return '—';
+  const s = String(v).replace(/_/g, ' ').toLowerCase();
+  return s.charAt(0).toUpperCase() + s.slice(1);
+};
+
+const row = (label: string, value: string): HTMLElement => {
+  const r = el('div', 'info-popup-row');
+  r.appendChild(el('span', 'info-popup-label', label));
+  r.appendChild(el('span', 'info-popup-value', value));
+  return r;
+};
+
 const buildHazardPopup = (props: FeatureProps): HTMLElement => {
   const p = props ?? {};
-  const root = el('div', 'tactical-popup-body');
-  root.appendChild(el('div', 'tactical-popup-title tactical-popup-title--hazard', show(p.title)));
-  root.appendChild(el('span', 'tactical-popup-badge', show(p.severity)));
-  root.appendChild(el('div', 'tactical-popup-row', `Type: ${show(p.type)}`));
-  const depth = isMissing(p.waterDepthEstM) ? '—' : `${String(p.waterDepthEstM)} m`;
-  root.appendChild(el('div', 'tactical-popup-row', `Est. depth: ${depth}`));
-  root.appendChild(el('div', 'tactical-popup-row tactical-popup-muted', show(p.infrastructureImpact)));
+  const root = el('div', 'info-popup-body');
+  root.appendChild(el('div', 'info-popup-kind info-popup-kind--flood', 'Flood area'));
+  root.appendChild(el('div', 'info-popup-title', show(p.title)));
+  const severity = isMissing(p.severity) ? '' : String(p.severity).toUpperCase();
+  if (severity) {
+    root.appendChild(el('span', `info-popup-badge info-popup-badge--${severity.toLowerCase()}`, humanize(severity)));
+  }
+  root.appendChild(row('Type', humanize(p.type)));
+  root.appendChild(row('Water depth', isMissing(p.waterDepthEstM) ? 'Unknown' : `${String(p.waterDepthEstM)} m`));
+  root.appendChild(el('p', 'info-popup-text', show(p.infrastructureImpact)));
+  root.appendChild(el('p', 'info-popup-note', 'AI estimate — verify on the ground.'));
   return root;
 };
 
 const buildSafeZonePopup = (props: FeatureProps): HTMLElement => {
   const p = props ?? {};
-  const root = el('div', 'tactical-popup-body');
-  root.appendChild(el('div', 'tactical-popup-title tactical-popup-title--safe', show(p.name)));
-  const elevation = isMissing(p.elevationM) ? '—' : `+${String(p.elevationM)} m`;
-  root.appendChild(el('div', 'tactical-popup-row', `Elevation: ${elevation}`));
+  const root = el('div', 'info-popup-body');
+  root.appendChild(el('div', 'info-popup-kind info-popup-kind--shelter', 'Shelter'));
+  root.appendChild(el('div', 'info-popup-title', show(p.name)));
   const capacityNum = Number(p.capacityPersons);
-  const capacity =
-    isMissing(p.capacityPersons) || Number.isNaN(capacityNum)
-      ? '—'
-      : `${capacityNum.toLocaleString()} persons`;
-  root.appendChild(el('div', 'tactical-popup-row', `Capacity: ${capacity}`));
-  root.appendChild(el('div', 'tactical-popup-row tactical-popup-muted', `Road access: ${show(p.roadAccess)}`));
+  root.appendChild(
+    row('Capacity', isMissing(p.capacityPersons) || Number.isNaN(capacityNum) ? '—' : `${capacityNum.toLocaleString()} people`)
+  );
+  root.appendChild(row('Elevation', isMissing(p.elevationM) ? '—' : `+${String(p.elevationM)} m`));
+  root.appendChild(row('Road access', show(p.roadAccess)));
   return root;
 };
+
+const LEGEND: Array<{ label: string; swatch: string }> = [
+  { label: 'Flood area', swatch: 'legend-swatch legend-swatch--flood' },
+  { label: 'Shelter', swatch: 'legend-swatch legend-swatch--shelter' },
+  { label: 'Rescue route', swatch: 'legend-line legend-line--route' },
+  { label: 'Blocked road', swatch: 'legend-line legend-line--blocked' },
+  { label: 'Pickup point', swatch: 'legend-dot legend-dot--pickup' },
+];
 
 export const MapView: React.FC<MapViewProps> = ({
   hazardData,
@@ -148,10 +193,10 @@ export const MapView: React.FC<MapViewProps> = ({
     const map = new mapboxgl.Map({
       container: mapContainerRef.current,
       style: 'mapbox://styles/mapbox/dark-v11',
-      center: missionConfig.spatial.center as [number, number],
-      zoom: missionConfig.spatial.zoom,
-      pitch: missionConfig.spatial.pitch,
-      bearing: missionConfig.spatial.bearing,
+      center: BOOT_CAMERA.center,
+      zoom: BOOT_CAMERA.zoom,
+      pitch: BOOT_CAMERA.pitch,
+      bearing: BOOT_CAMERA.bearing,
       antialias: true,
     });
     mapRef.current = map;
@@ -180,20 +225,20 @@ export const MapView: React.FC<MapViewProps> = ({
         console.warn('3D Terrain setup warning:', e);
       }
 
-      // Dark tactical atmosphere
+      // Plain dark horizon (no stars)
       try {
         map.setFog({
-          color: '#070B12',
-          'high-color': '#0B111E',
-          'horizon-blend': 0.08,
-          'space-color': '#070B12',
-          'star-intensity': 0.1,
+          color: COLOR.base,
+          'high-color': '#16191E',
+          'horizon-blend': 0.06,
+          'space-color': COLOR.base,
+          'star-intensity': 0,
         });
       } catch (e) {
         console.warn('Fog setup warning:', e);
       }
 
-      // Add 3D Building Extrusions for military tactical depth
+      // 3D buildings for street-level orientation
       try {
         const layers = map.getStyle().layers;
         const labelLayerId = layers?.find(
@@ -209,10 +254,10 @@ export const MapView: React.FC<MapViewProps> = ({
             type: 'fill-extrusion',
             minzoom: 13,
             paint: {
-              'fill-extrusion-color': '#0F172A',
+              'fill-extrusion-color': COLOR.building,
               'fill-extrusion-height': ['get', 'height'],
               'fill-extrusion-base': ['get', 'min_height'],
-              'fill-extrusion-opacity': 0.6,
+              'fill-extrusion-opacity': 0.7,
             },
           },
           labelLayerId
@@ -235,14 +280,14 @@ export const MapView: React.FC<MapViewProps> = ({
         data: { type: 'FeatureCollection', features: [] },
       });
 
-      // Hazard Layers (Crimson Neon)
+      // Flood areas (red)
       map.addLayer({
         id: 'hazards-fill',
         type: 'fill',
         source: 'hazards-src',
         paint: {
-          'fill-color': '#FF0055',
-          'fill-opacity': 0.45,
+          'fill-color': COLOR.flood,
+          'fill-opacity': 0.3,
         },
       });
       map.addLayer({
@@ -250,20 +295,20 @@ export const MapView: React.FC<MapViewProps> = ({
         type: 'line',
         source: 'hazards-src',
         paint: {
-          'line-color': '#FF0055',
-          'line-width': 2.5,
+          'line-color': COLOR.flood,
+          'line-width': 2,
           'line-opacity': 0.9,
         },
       });
 
-      // Safe Zone Layers (Cyan Neon)
+      // Shelters (blue)
       map.addLayer({
         id: 'safe-zones-fill',
         type: 'fill',
         source: 'safe-zones-src',
         paint: {
-          'fill-color': '#00F0FF',
-          'fill-opacity': 0.35,
+          'fill-color': COLOR.shelter,
+          'fill-opacity': 0.28,
         },
       });
       map.addLayer({
@@ -271,26 +316,27 @@ export const MapView: React.FC<MapViewProps> = ({
         type: 'line',
         source: 'safe-zones-src',
         paint: {
-          'line-color': '#00F0FF',
-          'line-width': 2.5,
+          'line-color': COLOR.shelter,
+          'line-width': 2,
           'line-opacity': 0.9,
         },
       });
 
-      // Compromised Route Layer (Dashed Grey)
+      // Blocked direct road (dashed grey)
       map.addLayer({
         id: 'route-compromised',
         type: 'line',
         source: 'route-src',
         filter: ['==', 'status', 'IMPASSABLE'],
         paint: {
-          'line-color': '#94A3B8',
+          'line-color': COLOR.blocked,
           'line-width': 3,
+          'line-opacity': 0.85,
           'line-dasharray': [2, 2],
         },
       });
 
-      // Active Rescue Route Layer (Neon Green Glow)
+      // Rescue route (green)
       map.addLayer({
         id: 'route-safe',
         type: 'line',
@@ -301,13 +347,13 @@ export const MapView: React.FC<MapViewProps> = ({
           'line-join': 'round',
         },
         paint: {
-          'line-color': '#00FF66',
+          'line-color': COLOR.route,
           'line-width': 5,
-          'line-opacity': 0.95,
+          'line-opacity': 1,
         },
       });
 
-      // Soft glow under the active rescue route
+      // Dark casing under the rescue route so it reads over any background (like navigation apps)
       map.addLayer(
         {
           id: 'route-safe-glow',
@@ -319,38 +365,38 @@ export const MapView: React.FC<MapViewProps> = ({
             'line-join': 'round',
           },
           paint: {
-            'line-color': '#00FF66',
-            'line-width': 14,
-            'line-blur': 8,
-            'line-opacity': 0.35,
+            'line-color': COLOR.routeCasing,
+            'line-width': 9,
+            'line-opacity': 0.9,
           },
         },
         'route-safe'
       );
 
-      // Moving dashes above the active rescue route
+      // Subtle direction-of-travel dashes on the rescue route
       map.addLayer({
         id: 'route-safe-flow',
         type: 'line',
         source: 'route-src',
         filter: ['==', 'status', 'ACTIVE_SECURE'],
         paint: {
-          'line-color': '#D1FFE3',
-          'line-width': 2,
+          'line-color': '#FFFFFF',
+          'line-width': 1.5,
+          'line-opacity': 0.55,
           'line-dasharray': DASH_ARRAY_SEQUENCE[0],
         },
       });
 
-      // Waypoint Circles
+      // Small anchor dots under the pickup/shelter pins
       map.addLayer({
         id: 'route-waypoints',
         type: 'circle',
         source: 'route-src',
         filter: ['==', '$type', 'Point'],
         paint: {
-          'circle-radius': 8,
-          'circle-color': ['get', 'color'],
-          'circle-stroke-width': 2,
+          'circle-radius': 4,
+          'circle-color': COLOR.base,
+          'circle-stroke-width': 1.5,
           'circle-stroke-color': '#FFFFFF',
         },
       });
@@ -375,7 +421,7 @@ export const MapView: React.FC<MapViewProps> = ({
         if (!content) return;
 
         popupRef.current = new mapboxgl.Popup({
-          className: 'tactical-popup',
+          className: 'info-popup',
           closeButton: true,
           maxWidth: '280px',
           offset: 8,
@@ -436,7 +482,7 @@ export const MapView: React.FC<MapViewProps> = ({
     }
   }, [routeData, mapLoaded]);
 
-  // Pulsing start / destination markers for the route
+  // Labelled pickup / shelter pins for the route
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapLoaded || !routeData) return;
@@ -447,16 +493,21 @@ export const MapView: React.FC<MapViewProps> = ({
       if (!Array.isArray(coords) || typeof coords[0] !== 'number' || typeof coords[1] !== 'number') continue;
 
       const pointType = feature.properties?.type;
-      const variant =
+      const pin =
         feature.id === 'start-point' || pointType === 'START'
-          ? 'pulse-amber'
+          ? { variant: 'map-pin--pickup', label: 'Pickup' }
           : feature.id === 'destination-point' || pointType === 'DESTINATION'
-            ? 'pulse-cyan'
+            ? { variant: 'map-pin--shelter', label: 'Shelter' }
             : null;
-      if (!variant) continue;
+      if (!pin) continue;
 
+      // The element is the dot itself (so the default center anchor sits on the point); the label hangs beside it
       const element = document.createElement('div');
-      element.className = `pulse-marker ${variant}`;
+      element.className = `map-pin ${pin.variant}`;
+      const label = document.createElement('span');
+      label.className = 'map-pin-label';
+      label.textContent = pin.label;
+      element.appendChild(label);
       const marker = new mapboxgl.Marker({ element })
         .setLngLat([coords[0], coords[1]]) // [lon, lat]
         .addTo(map);
@@ -508,10 +559,10 @@ export const MapView: React.FC<MapViewProps> = ({
     if (stage === 'IDLE') {
       // Reset: fly back to the boot camera (padding 0 clears the padding fitBounds leaves behind)
       map.flyTo({
-        center: missionConfig.spatial.center as [number, number],
-        zoom: missionConfig.spatial.zoom,
-        pitch: missionConfig.spatial.pitch,
-        bearing: missionConfig.spatial.bearing,
+        center: BOOT_CAMERA.center,
+        zoom: BOOT_CAMERA.zoom,
+        pitch: BOOT_CAMERA.pitch,
+        bearing: BOOT_CAMERA.bearing,
         padding: 0,
         duration: RESET_DURATION_MS,
         essential: true,
@@ -550,53 +601,44 @@ export const MapView: React.FC<MapViewProps> = ({
   }, [stage, mapLoaded, hazardData, safeZoneData, routeData]);
 
   return (
-    <div className="relative w-full h-full bg-[#070B12]">
-      <div ref={mapContainerRef} className="w-full h-full" />
+    <div className="relative h-full w-full bg-[#0F1115] font-sans">
+      <div ref={mapContainerRef} className="h-full w-full" />
 
-      {/* Token Missing Warning Banner */}
+      {/* Missing Mapbox token */}
       {tokenMissing && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#070B12]/95 p-8 text-center z-40 backdrop-blur-md">
-          <div className="w-16 h-16 mb-4 rounded-full border-2 border-radar-amber flex items-center justify-center text-radar-amber text-2xl font-bold animate-pulse">
-            !
-          </div>
-          <h2 className="text-xl font-bold text-radar-amber tracking-wider mb-2">MAPBOX ACCESS TOKEN REQUIRED</h2>
-          <p className="max-w-md text-sm text-slate-400 mb-6 font-mono leading-relaxed">
-            To render the 3D tactical satellite canvas, add your token to <span className="text-radar-cyan font-bold">frontend/.env</span>:
-            <br />
-            <code className="inline-block mt-2 p-2 bg-[#0B111E] rounded text-xs text-slate-200 border border-slate-800">
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-[#0F1115] p-8">
+          <div className="max-w-md rounded-lg border border-[#2B3038] bg-[#16191E] p-5 text-[#ECEEF1]">
+            <h2 className="text-base font-semibold">Map unavailable</h2>
+            <p className="mt-2 text-sm leading-relaxed text-[#A1A8B3]">
+              The base map needs a Mapbox access token. Add it to <code className="text-[#ECEEF1]">frontend/.env</code> and
+              restart the app:
+            </p>
+            <code className="mt-3 block rounded border border-[#2B3038] bg-[#0F1115] p-2 text-xs text-[#C9CED6]">
               VITE_MAPBOX_TOKEN=pk.eyJ1...
             </code>
-          </p>
-          <div className="p-4 bg-slate-900/80 border border-slate-800 rounded-lg max-w-md text-left text-xs text-slate-300 font-mono">
-            <span className="text-radar-green font-bold">READY IN CODE:</span> All spatial logic, Turf.js calculations, and AI endpoints are fully functional. Add a free public Mapbox token to unlock the live WebGL terrain.
+            <p className="mt-3 text-sm text-[#A1A8B3]">
+              Flood detection, shelters and routing still work from cached data.
+            </p>
           </div>
         </div>
       )}
 
-      {/* Grid Coordinates Overlay */}
-      <div className="absolute top-4 left-4 pointer-events-none z-10 flex gap-4 text-[10px] font-mono text-radar-cyan/60 tracking-wider">
-        <span className="bg-[#070B12]/80 px-2 py-1 rounded border border-radar-cyan/20">
-          COORD: [101.6938°E, 3.1408°N]
-        </span>
-        <span className="bg-[#070B12]/80 px-2 py-1 rounded border border-radar-cyan/20">
-          GRID: KLANG-BASIN-ALPHA
-        </span>
-        <span className="bg-[#070B12]/80 px-2 py-1 rounded border border-radar-cyan/20">
-          DATUM: WGS-84
-        </span>
-      </div>
-
-      {/* Tactical Compass / Status Ring */}
-      <div className="absolute bottom-6 right-6 pointer-events-none z-10">
-        <div className="relative w-24 h-24 rounded-full border border-radar-cyan/30 flex items-center justify-center bg-[#070B12]/60 backdrop-blur-sm">
-          <div className="absolute inset-1 rounded-full border border-dashed border-radar-cyan/20 animate-spin" style={{ animationDuration: '20s' }} />
-          <div className="text-[9px] font-mono text-radar-cyan/80 text-center leading-tight">
-            AEGIS<br />
-            <span className="text-[11px] font-bold text-radar-cyan">3D-SYS</span><br />
-            ONLINE
-          </div>
+      {/* Legend */}
+      {!tokenMissing && (
+        <div
+          className="pointer-events-none absolute left-3 top-3 z-10 rounded-md border border-[#2B3038] bg-[#16191E]/90 px-3 py-2 text-xs text-[#C9CED6]"
+          aria-label="Map legend"
+        >
+          <ul className="space-y-1">
+            {LEGEND.map((item) => (
+              <li key={item.label} className="flex items-center gap-2">
+                <span className={item.swatch} aria-hidden="true" />
+                {item.label}
+              </li>
+            ))}
+          </ul>
         </div>
-      </div>
+      )}
     </div>
   );
 };
