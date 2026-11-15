@@ -1,12 +1,20 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { MapView } from './components/MapView';
 import { TacticalHUD } from './components/TacticalHUD';
+import { SatelliteScanModal } from './components/SatelliteScanModal';
 import {
   runDisasterScan,
   GeoJsonFeatureCollection,
 } from './services/api';
 import { computeSafeReliefZones } from './services/turfSafeZone';
 import { calculateRescueRoute } from './services/routing';
+
+const BEFORE_IMAGE_SRC = '/imagery/before.jpg';
+const AFTER_IMAGE_SRC = '/imagery/after.jpg';
+const SCAN_MIN_DURATION_MS = 3000;
+const SCAN_COMPLETE_HOLD_MS = 1200;
+
+const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 export function App() {
   const [stage, setStage] = useState<'IDLE' | 'HAZARDS_DETECTED' | 'SAFE_ZONES_COMPUTED' | 'ROUTE_DISPATCHED'>('IDLE');
@@ -19,6 +27,13 @@ export function App() {
     '[GRID-LOCK] Target: Klang River Basin [101.66E, 3.11N to 101.73E, 3.17N].',
     '[READY] Standing by for satellite telemetry ingestion...',
   ]);
+  const [scanModalOpen, setScanModalOpen] = useState(false);
+  const [scanStatus, setScanStatus] = useState<'scanning' | 'complete'>('scanning');
+  const [scanHazardCount, setScanHazardCount] = useState<number | null>(null);
+  // Bumped on every new scan and on Reset, so a scan finishing after Reset is ignored
+  const scanRunRef = useRef(0);
+
+  const closeScanModal = useCallback(() => setScanModalOpen(false), []);
 
   const addLog = useCallback((message: string) => {
     const timestamp = new Date().toISOString().substring(11, 19);
@@ -31,16 +46,31 @@ export function App() {
     addLog('[SAT-LINK] Ingesting Sentinel-1 SAR & Sentinel-2 optical imagery...');
     addLog('[AI-PIPELINE] Querying local Qwen3-VL (qwen3-vl:4b) damage bounding-box model...');
 
+    const runId = ++scanRunRef.current;
+    setScanStatus('scanning');
+    setScanHazardCount(null);
+    setScanModalOpen(true);
+
     try {
-      const data = await runDisasterScan();
+      const [data] = await Promise.all([runDisasterScan(), wait(SCAN_MIN_DURATION_MS)]);
+      if (runId !== scanRunRef.current) return;
+
+      setScanHazardCount(data.features.length);
+      setScanStatus('complete');
+      await wait(SCAN_COMPLETE_HOLD_MS);
+      if (runId !== scanRunRef.current) return;
+
+      setScanModalOpen(false);
       setHazardData(data);
       setStage('HAZARDS_DETECTED');
       addLog(`[AI-CONFIRMED] ${data.features.length} Critical hazard zones detected on transit corridors.`);
       addLog('[ALERT] Lebuh Pasar Besar Bridge & Federal Highway underpass impassable.');
     } catch (e) {
+      if (runId !== scanRunRef.current) return;
+      setScanModalOpen(false);
       addLog(`[ERROR] Scan failure: ${e}`);
     } finally {
-      setIsLoading(false);
+      if (runId === scanRunRef.current) setIsLoading(false);
     }
   };
 
@@ -85,6 +115,9 @@ export function App() {
 
   // Reset demo
   const handleReset = () => {
+    scanRunRef.current += 1;
+    setScanModalOpen(false);
+    setIsLoading(false);
     setStage('IDLE');
     setHazardData(null);
     setSafeZoneData(null);
@@ -118,6 +151,14 @@ export function App() {
           safeZoneData={safeZoneData}
           routeData={routeData}
           stage={stage}
+        />
+        <SatelliteScanModal
+          open={scanModalOpen}
+          beforeSrc={BEFORE_IMAGE_SRC}
+          afterSrc={AFTER_IMAGE_SRC}
+          status={scanStatus}
+          hazardCount={scanHazardCount}
+          onClose={closeScanModal}
         />
       </main>
     </div>
