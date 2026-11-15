@@ -63,18 +63,18 @@
 **Workspace**: `backend/` & `shared/fallback_damage.json`
 
 ### Phase 1: Local `qwen3-vl:4b` & FastAPI Setup (Hours 0:00 – 1:15)
-- [ ] Pull and start `qwen3-vl:4b` locally via Ollama:
+- [x] Pull and start `qwen3-vl:4b` locally via Ollama:
   ```bash
   ollama pull qwen3-vl:4b
   ollama serve
   ```
-- [ ] Start the FastAPI backend:
+- [x] Start the FastAPI backend:
   ```bash
   cd backend
   source venv/bin/activate
   uvicorn app.main:app --reload --port 8000
   ```
-- [ ] Verify `http://localhost:8000/docs` loads and test `POST /api/analyze-disaster`.
+- [x] Verify `http://localhost:8000/docs` loads and test `POST /api/analyze-disaster`.
 
 ### Phase 2: Vision Prompt Tuning & Golden Cache (Hours 1:15 – 2:30)
 - [ ] Select 1 pair of before/after satellite flood images of Kuala Lumpur (or composite flood water onto a satellite screenshot of the Klang-Gombak river confluence).
