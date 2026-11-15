@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
+import 'mapbox-gl/dist/mapbox-gl.css';
 import missionConfig from '@shared/config.json';
 import { GeoJsonFeatureCollection } from '../services/api';
 
@@ -43,6 +44,17 @@ export const MapView: React.FC<MapViewProps> = ({
       bearing: missionConfig.spatial.bearing,
       antialias: true,
     });
+    mapRef.current = map;
+
+    map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'top-right');
+
+    map.on('error', (e) => {
+      try {
+        console.warn('[MAP]', e?.error ?? e);
+      } catch {
+        // Never let map error logging throw
+      }
+    });
 
     map.on('load', () => {
       // Add 3D terrain
@@ -56,6 +68,19 @@ export const MapView: React.FC<MapViewProps> = ({
         map.setTerrain({ source: 'mapbox-dem', exaggeration: 1.5 });
       } catch (e) {
         console.warn('3D Terrain setup warning:', e);
+      }
+
+      // Dark tactical atmosphere
+      try {
+        map.setFog({
+          color: '#070B12',
+          'high-color': '#0B111E',
+          'horizon-blend': 0.08,
+          'space-color': '#070B12',
+          'star-intensity': 0.1,
+        });
+      } catch (e) {
+        console.warn('Fog setup warning:', e);
       }
 
       // Add 3D Building Extrusions for military tactical depth
@@ -182,12 +207,13 @@ export const MapView: React.FC<MapViewProps> = ({
         },
       });
 
-      mapRef.current = map;
       setMapLoaded(true);
     });
 
     return () => {
       map.remove();
+      mapRef.current = null;
+      setMapLoaded(false);
     };
   }, []);
 
