@@ -2,6 +2,8 @@
 
 The slides are deferred. This folder holds the demo image pair and reproducible API capture.
 
+An additional [authentic KL reference pair](assets/kl-sentinel-2021/README.md) contains Sentinel-2 observations from December 9 and 24, 2021 over the same mission bounds. Its source metadata is verified, but clouds and shadows prevent visual confirmation of flood damage. Qwen's 89.632-second test returned one unverified hazard; this pair does not replace the synthetic demo or golden cache.
+
 ## Captured result
 
 The successful image-pair POST took **188.642 seconds** (model call: **188.557 seconds**). The forced-cache POST took **0.014 seconds**. See [timings.json](evidence/timings.json).

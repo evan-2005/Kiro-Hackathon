@@ -1,0 +1,62 @@
+{
+  "type": "FeatureCollection",
+  "metadata": {
+    "source": "QWEN3_VL_LIVE_PIPELINE (qwen3-vl:4b-aegis)",
+    "summary": "Detected new river overtopping in Kuala Lumpur, with suspected flooding outside normal river banks.",
+    "hazardCount": 1,
+    "inferenceSeconds": 89.576,
+    "boundingBox": {
+      "minLon": 101.66,
+      "minLat": 3.11,
+      "maxLon": 101.73,
+      "maxLat": 3.17
+    }
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "id": "ai-hazard-1",
+      "properties": {
+        "title": "River Overtopping",
+        "type": "RIVER_OVERTOPPING",
+        "severity": "CRITICAL",
+        "waterDepthEstM": null,
+        "infrastructureImpact": "Suspected river overtopping causing potential inundation of low-lying areas, requiring field verification for extent and depth.",
+        "bboxNormalized": [
+          0.15,
+          0.7,
+          0.4,
+          0.9
+        ],
+        "color": "#FF0055"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              101.6705,
+              3.128
+            ],
+            [
+              101.6705,
+              3.116
+            ],
+            [
+              101.688,
+              3.116
+            ],
+            [
+              101.688,
+              3.128
+            ],
+            [
+              101.6705,
+              3.128
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}
