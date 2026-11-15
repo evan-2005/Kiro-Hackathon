@@ -2,176 +2,259 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Dispatch-console design tokens: see DESIGN.md §2 */
 @layer base {
   body {
-    font-family: 'JetBrains Mono', monospace;
-    background-color: #070B12;
-    color: #E2E8F0;
+    font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background-color: #0F1115;
+    color: #ECEEF1;
+    -webkit-font-smoothing: antialiased;
   }
 }
 
-/* Custom scrollbars for tactical HUD */
+/* Scrollbars */
 ::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #0B111E;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #1E2A42;
-  border-radius: 2px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #00F0FF;
-}
-
-/* Radar scanline effect */
-.tactical-scanline {
-  background: linear-gradient(
-    to bottom,
-    rgba(255,255,255,0),
-    rgba(255,255,255,0) 50%,
-    rgba(0, 240, 255, 0.05) 50%,
-    rgba(0, 240, 255, 0.05)
-  );
-  background-size: 100% 4px;
-}
-
-/* Tactical glowing box effects */
-.glow-cyan {
-  box-shadow: 0 0 15px rgba(0, 240, 255, 0.25), inset 0 0 15px rgba(0, 240, 255, 0.1);
-}
-
-.glow-crimson {
-  box-shadow: 0 0 15px rgba(255, 0, 85, 0.3), inset 0 0 15px rgba(255, 0, 85, 0.15);
-}
-
-.glow-green {
-  box-shadow: 0 0 15px rgba(0, 255, 102, 0.3), inset 0 0 15px rgba(0, 255, 102, 0.15);
-}
-
-/* Tactical map popups (MapView click popups) */
-.tactical-popup .mapboxgl-popup-content {
-  background: #0B111E;
-  border: 1px solid #1E2A42;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-  color: #E2E8F0;
-  border-radius: 6px;
-  padding: 10px 12px;
-}
-
-.tactical-popup.mapboxgl-popup-anchor-top .mapboxgl-popup-tip,
-.tactical-popup.mapboxgl-popup-anchor-top-left .mapboxgl-popup-tip,
-.tactical-popup.mapboxgl-popup-anchor-top-right .mapboxgl-popup-tip {
-  border-bottom-color: #0B111E;
-}
-
-.tactical-popup.mapboxgl-popup-anchor-bottom .mapboxgl-popup-tip,
-.tactical-popup.mapboxgl-popup-anchor-bottom-left .mapboxgl-popup-tip,
-.tactical-popup.mapboxgl-popup-anchor-bottom-right .mapboxgl-popup-tip {
-  border-top-color: #0B111E;
-}
-
-.tactical-popup.mapboxgl-popup-anchor-left .mapboxgl-popup-tip {
-  border-right-color: #0B111E;
-}
-
-.tactical-popup.mapboxgl-popup-anchor-right .mapboxgl-popup-tip {
-  border-left-color: #0B111E;
-}
-
-.tactical-popup .mapboxgl-popup-close-button {
-  color: #94A3B8;
-  font-size: 16px;
-  padding: 0 6px;
   background: transparent;
 }
 
-.tactical-popup .mapboxgl-popup-close-button:hover {
+::-webkit-scrollbar-thumb {
+  background: #2B3038;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3A414B;
+}
+
+/* ---------- Map popups (MapView) ---------- */
+.info-popup .mapboxgl-popup-content {
+  background: #16191E;
+  border: 1px solid #2B3038;
+  border-radius: 8px;
+  padding: 12px 14px;
+  color: #ECEEF1;
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.info-popup.mapboxgl-popup-anchor-top .mapboxgl-popup-tip,
+.info-popup.mapboxgl-popup-anchor-top-left .mapboxgl-popup-tip,
+.info-popup.mapboxgl-popup-anchor-top-right .mapboxgl-popup-tip {
+  border-bottom-color: #16191E;
+}
+
+.info-popup.mapboxgl-popup-anchor-bottom .mapboxgl-popup-tip,
+.info-popup.mapboxgl-popup-anchor-bottom-left .mapboxgl-popup-tip,
+.info-popup.mapboxgl-popup-anchor-bottom-right .mapboxgl-popup-tip {
+  border-top-color: #16191E;
+}
+
+.info-popup.mapboxgl-popup-anchor-left .mapboxgl-popup-tip {
+  border-right-color: #16191E;
+}
+
+.info-popup.mapboxgl-popup-anchor-right .mapboxgl-popup-tip {
+  border-left-color: #16191E;
+}
+
+.info-popup .mapboxgl-popup-close-button {
+  color: #B4BBC5;
+  font-size: 22px;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: transparent;
+}
+
+.info-popup .mapboxgl-popup-close-button:hover {
   color: #FFFFFF;
   background: transparent;
 }
 
-.tactical-popup-body {
+.info-popup-body {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding-right: 12px;
+  padding-right: 22px;
 }
 
-.tactical-popup-title {
-  font-weight: 700;
+.info-popup-kind {
   font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.info-popup-kind--flood {
+  color: #FF8B8E;
+}
+
+.info-popup-kind--shelter {
+  color: #8DB8FF;
+}
+
+.info-popup-title {
+  font-size: 16px;
+  font-weight: 600;
   line-height: 1.3;
 }
 
-.tactical-popup-title--hazard {
-  color: #FF0055;
-}
-
-.tactical-popup-title--safe {
-  color: #00F0FF;
-}
-
-.tactical-popup-badge {
+.info-popup-badge {
   align-self: flex-start;
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #FF0055;
-  border: 1px solid rgba(255, 0, 85, 0.6);
-  background: rgba(255, 0, 85, 0.12);
-  border-radius: 3px;
+  margin: 2px 0;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 4px;
   padding: 1px 6px;
+  border: 1px solid #3A414B;
+  color: #C9CED6;
 }
 
-.tactical-popup-row {
-  line-height: 1.4;
+.info-popup-badge--critical {
+  color: #FF8B8E;
+  border-color: rgba(229, 72, 77, 0.45);
+  background: rgba(229, 72, 77, 0.15);
 }
 
-.tactical-popup-muted {
-  color: #94A3B8;
+.info-popup-badge--high {
+  color: #FFB27A;
+  border-color: rgba(247, 107, 21, 0.45);
+  background: rgba(247, 107, 21, 0.15);
 }
 
-/* Satellite scan modal: scanline sweep + indeterminate progress */
-.scan-sweep {
+.info-popup-badge--elevated {
+  color: #F5C451;
+  border-color: rgba(245, 165, 36, 0.45);
+  background: rgba(245, 165, 36, 0.15);
+}
+
+.info-popup-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  line-height: 1.5;
+}
+
+.info-popup-label {
+  color: #B4BBC5;
+  white-space: nowrap;
+}
+
+.info-popup-value {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.info-popup-text {
+  margin-top: 2px;
+  color: #C9CED6;
+  line-height: 1.45;
+}
+
+.info-popup-note {
+  margin-top: 2px;
+  font-size: 13px;
+  color: #8D96A3;
+}
+
+/* ---------- Route pins (MapView) ----------
+   No `position` on .map-pin: Mapbox's .mapboxgl-marker sets position:absolute, which also anchors the label.
+   Overriding it to relative pushes every marker after the first out of place. */
+.map-pin {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 3px solid #FFFFFF;
+  background: var(--pin-color);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+
+.map-pin--start {
+  --pin-color: #F5A524;
+}
+
+.map-pin--shelter {
+  --pin-color: #3B82F6;
+}
+
+.map-pin-label {
   position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  height: 2px;
-  background: #00F0FF;
-  box-shadow: 0 0 12px 2px rgba(0, 240, 255, 0.6);
+  left: 26px;
+  top: 50%;
+  transform: translateY(-50%);
+  white-space: nowrap;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(15, 17, 21, 0.95);
+  border: 1px solid #4A525E;
+  color: #ECEEF1;
+  font: 600 14px/1.4 ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  pointer-events: none;
 }
 
+/* ---------- Map legend (MapView) ---------- */
+.legend-swatch {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 2px;
+  border: 2px solid;
+}
+
+.legend-swatch--flood {
+  border-color: #E5484D;
+  background: rgba(229, 72, 77, 0.35);
+}
+
+.legend-swatch--shelter {
+  border-color: #3B82F6;
+  background: rgba(59, 130, 246, 0.35);
+}
+
+.legend-line {
+  display: inline-block;
+  width: 14px;
+  height: 0;
+  border-top-width: 4px;
+}
+
+.legend-line--route {
+  border-top-style: solid;
+  border-top-color: #30A46C;
+}
+
+.legend-line--blocked {
+  border-top-style: dashed;
+  border-top-color: #8B95A1;
+}
+
+.legend-dot {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid #FFFFFF;
+}
+
+.legend-dot--start {
+  background: #F5A524;
+}
+
+/* ---------- Satellite scan progress (SatelliteScanModal) ---------- */
 .scan-progress {
   left: 0;
   width: 30%;
-  opacity: 0.8;
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .scan-sweep {
-    animation: scan-sweep 2s linear infinite;
-  }
-
   .scan-progress {
-    animation: scan-progress 1.4s ease-in-out infinite;
-  }
-}
-
-@keyframes scan-sweep {
-  from {
-    top: 0%;
-  }
-  to {
-    top: 100%;
+    animation: scan-progress 1.6s ease-in-out infinite;
   }
 }
 
@@ -184,98 +267,8 @@
   }
 }
 
-/* Pulsing route markers (start / destination) */
-/* No `position` here: Mapbox's .mapboxgl-marker sets position:absolute, which also anchors ::after.
-   Overriding it to relative pushes every marker after the first out of place. */
-.pulse-marker {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  border: 2px solid #FFFFFF;
-  background: var(--pulse-color);
-}
-
-.pulse-marker::after {
-  content: '';
-  position: absolute;
-  inset: -2px;
-  border-radius: 50%;
-  border: 2px solid var(--pulse-color);
-  opacity: 0;
-  pointer-events: none;
-  animation: pulse-ring 1.6s ease-out infinite;
-}
-
-.pulse-amber {
-  --pulse-color: #FFB800;
-}
-
-.pulse-cyan {
-  --pulse-color: #00F0FF;
-}
-
-@keyframes pulse-ring {
-  from {
-    transform: scale(1);
-    opacity: 0.6;
-  }
-  to {
-    transform: scale(3);
-    opacity: 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .pulse-marker::after {
-    animation: none;
-  }
-}
-
-/* HUD next-step glow: border glow only (replaces animate-pulse, which blinked the text) */
-.step-glow-crimson {
-  box-shadow: 0 0 10px rgba(255, 0, 85, 0.3);
-}
-
-.step-glow-cyan {
-  box-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
-}
-
-.step-glow-green {
-  box-shadow: 0 0 10px rgba(0, 255, 102, 0.3);
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .step-glow-crimson {
-    animation: step-glow-crimson 2s ease-in-out infinite;
-  }
-
-  .step-glow-cyan {
-    animation: step-glow-cyan 2s ease-in-out infinite;
-  }
-
-  .step-glow-green {
-    animation: step-glow-green 2s ease-in-out infinite;
-  }
-
-  /* The focus ring is also a box-shadow; pause the glow so the ring stays visible */
-  .step-glow-crimson:focus-visible,
-  .step-glow-cyan:focus-visible,
-  .step-glow-green:focus-visible {
-    animation: none;
-  }
-}
-
-@keyframes step-glow-crimson {
-  0%, 100% { box-shadow: 0 0 4px rgba(255, 0, 85, 0.15); }
-  50% { box-shadow: 0 0 16px 2px rgba(255, 0, 85, 0.45); }
-}
-
-@keyframes step-glow-cyan {
-  0%, 100% { box-shadow: 0 0 4px rgba(0, 240, 255, 0.15); }
-  50% { box-shadow: 0 0 16px 2px rgba(0, 240, 255, 0.45); }
-}
-
-@keyframes step-glow-green {
-  0%, 100% { box-shadow: 0 0 4px rgba(0, 255, 102, 0.15); }
-  50% { box-shadow: 0 0 16px 2px rgba(0, 255, 102, 0.45); }
+/* ---------- Map zoom / compass controls: touch-sized (44px) ---------- */
+.mapboxgl-ctrl-group button {
+  width: 44px;
+  height: 44px;
 }

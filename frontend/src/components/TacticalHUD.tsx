@@ -1,233 +1,336 @@
 import React from 'react';
-import {
-  Satellite,
-  ShieldCheck,
-  Navigation,
-  AlertTriangle,
-  RotateCcw,
-  Terminal,
-  Activity,
-  MapPin,
-} from 'lucide-react';
+import { AlertTriangle, Check, Loader2, RotateCcw } from 'lucide-react';
 import { GeoJsonFeatureCollection } from '../services/api';
 
+type Stage = 'IDLE' | 'HAZARDS_DETECTED' | 'SAFE_ZONES_COMPUTED' | 'ROUTE_DISPATCHED';
+
+export interface RouteSummary {
+  distanceKm: number | null;
+  durationMin: number | null;
+  from: string;
+  to: string;
+  hasBlockedRoute: boolean;
+}
+
 interface TacticalHUDProps {
-  stage: 'IDLE' | 'HAZARDS_DETECTED' | 'SAFE_ZONES_COMPUTED' | 'ROUTE_DISPATCHED';
+  stage: Stage;
   isLoading: boolean;
-  logs: string[];
   hazardData: GeoJsonFeatureCollection | null;
   safeZoneData: GeoJsonFeatureCollection | null;
+  primaryZoneName: string | null;
+  routeSummary: RouteSummary | null;
+  alert: string | null;
   onScanTelemetry: () => void;
   onComputeSafeZones: () => void;
   onDispatchRoute: () => void;
   onReset: () => void;
 }
 
+const STAGE_ORDER: Stage[] = ['IDLE', 'HAZARDS_DETECTED', 'SAFE_ZONES_COMPUTED', 'ROUTE_DISPATCHED'];
+
+const isMissing = (v: unknown) => v === undefined || v === null || v === '';
+
+/** "RIVER_OVERTOPPING" → "River overtopping" */
+const humanize = (v: unknown): string => {
+  if (isMissing(v)) return '—';
+  const s = String(v).replace(/_/g, ' ').toLowerCase();
+  return s.charAt(0).toUpperCase() + s.slice(1);
+};
+
+const SEVERITY_STYLE: Record<string, string> = {
+  CRITICAL: 'text-[#FF8B8E] bg-[#E5484D]/15 border-[#E5484D]/40',
+  HIGH: 'text-[#FFB27A] bg-[#F76B15]/15 border-[#F76B15]/40',
+  ELEVATED: 'text-[#F5C451] bg-[#F5A524]/15 border-[#F5A524]/40',
+};
+
+const SECTION_HEADING = 'mb-2 text-[13px] font-semibold uppercase tracking-wide text-[#8D96A3]';
+const FOCUS_RING = 'focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6EA8FE]';
+
+interface StepProps {
+  index: number;
+  title: string;
+  description: string;
+  doneSummary: string;
+  actionLabel: string;
+  busyLabel: string;
+  state: 'done' | 'current' | 'upcoming';
+  busy: boolean;
+  onAction: () => void;
+}
+
+/** Only the current step is expanded; done and upcoming steps are one quiet line each. */
+const Step: React.FC<StepProps> = ({ index, title, description, doneSummary, actionLabel, busyLabel, state, busy, onAction }) => {
+  if (state !== 'current') {
+    const done = state === 'done';
+    return (
+      <li className="flex items-center gap-3 px-3 py-1.5">
+        <span
+          aria-hidden="true"
+          className={`flex h-6 w-6 flex-none items-center justify-center rounded-full text-[13px] font-semibold ${
+            done ? 'bg-[#30A46C] text-[#0F1115]' : 'border border-[#4A525E] text-[#8D96A3]'
+          }`}
+        >
+          {done ? <Check className="h-4 w-4" strokeWidth={3} /> : index}
+        </span>
+        <span className={`min-w-0 flex-1 truncate text-[15px] ${done ? 'text-[#ECEEF1]' : 'text-[#8D96A3]'}`}>{title}</span>
+        {done && (
+          <span className="flex-none text-sm tabular-nums text-[#B4BBC5]">
+            <span className="sr-only">Completed: </span>
+            {doneSummary}
+          </span>
+        )}
+      </li>
+    );
+  }
+
+  return (
+    <li className="rounded-lg border border-[#4A525E] bg-[#1C2026] p-3" aria-current="step">
+      <div className="flex items-start gap-3">
+        <span
+          aria-hidden="true"
+          className="mt-0.5 flex h-6 w-6 flex-none items-center justify-center rounded-full bg-[#ECEEF1] text-[13px] font-bold text-[#0F1115]"
+        >
+          {index}
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-base font-semibold text-[#ECEEF1]">{title}</p>
+          <p className="mt-0.5 text-sm leading-snug text-[#B4BBC5]">{description}</p>
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={onAction}
+        disabled={busy}
+        className={`mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-md bg-[#ECEEF1] px-4 text-base font-semibold text-[#0F1115] transition-colors hover:bg-white disabled:cursor-wait disabled:opacity-70 ${FOCUS_RING} focus-visible:ring-offset-2 focus-visible:ring-offset-[#1C2026]`}
+      >
+        {busy && <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />}
+        {busy ? busyLabel : actionLabel}
+      </button>
+    </li>
+  );
+};
+
 export const TacticalHUD: React.FC<TacticalHUDProps> = ({
   stage,
   isLoading,
-  logs,
   hazardData,
   safeZoneData,
+  primaryZoneName,
+  routeSummary,
+  alert,
   onScanTelemetry,
   onComputeSafeZones,
   onDispatchRoute,
   onReset,
 }) => {
+  const stageIndex = STAGE_ORDER.indexOf(stage);
+  const stepState = (i: number): 'done' | 'current' | 'upcoming' =>
+    stageIndex > i ? 'done' : stageIndex === i ? 'current' : 'upcoming';
+
+  const hazards = hazardData?.features ?? [];
+  const hazardCount = hazards.length;
+  // Recommended / destination shelter always first
+  const shelters = [...(safeZoneData?.features ?? [])].sort((a, b) => {
+    const an = a.properties?.name === primaryZoneName ? 0 : 1;
+    const bn = b.properties?.name === primaryZoneName ? 0 : 1;
+    return an - bn;
+  });
+  const shelterCount = shelters.length;
+
+  const distance = routeSummary && routeSummary.distanceKm !== null ? `${routeSummary.distanceKm.toFixed(1)} km` : null;
+  const minutes = routeSummary && routeSummary.durationMin !== null ? Math.round(routeSummary.durationMin) : null;
+
   return (
-    <aside className="w-96 h-full flex flex-col bg-[#0B111E]/95 border-r border-slate-800 backdrop-blur-md z-30 select-none shadow-2xl">
-      {/* HUD Header */}
-      <div className="p-4 border-b border-slate-800 bg-[#070B12]/80">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
-            <div className="w-2.5 h-2.5 rounded-full bg-radar-cyan animate-pulse shadow-[0_0_8px_#00F0FF]" />
-            <span className="text-xs font-bold tracking-widest text-radar-cyan uppercase">
-              PROJECT AEGIS
-            </span>
-          </div>
-          <span className="text-[10px] px-2 py-0.5 rounded bg-radar-cyan/10 text-radar-cyan border border-radar-cyan/30 font-mono">
-            SEC-DEF v1.0
+    <aside className="z-30 flex h-full w-96 flex-none flex-col border-r border-[#2B3038] bg-[#16191E] font-sans text-[#ECEEF1]">
+      {/* Header */}
+      <header className="border-b border-[#2B3038] px-4 py-3">
+        <div className="flex items-center justify-between gap-2">
+          <h1 className="text-lg font-semibold">Flood response</h1>
+          <span className="rounded border border-[#F5A524]/50 px-2 py-0.5 text-[13px] font-medium text-[#F5C451]">
+            Simulated scenario
           </span>
         </div>
-        <h1 className="text-sm font-semibold text-slate-100 tracking-wide uppercase">
-          Tactical Disaster Recovery
-        </h1>
-        <p className="text-[11px] text-slate-400 font-mono mt-0.5 flex items-center gap-1.5">
-          <Activity className="w-3 h-3 text-radar-green" />
-          TARGET: KLANG RIVER BASIN [KL]
-        </p>
-      </div>
+        <p className="text-sm text-[#B4BBC5]">Klang River basin, Kuala Lumpur</p>
+      </header>
 
-      {/* Main Execution Controls */}
-      <div className="p-4 space-y-3 flex-shrink-0">
-        <div className="text-[10px] font-mono uppercase text-slate-400 tracking-wider flex items-center justify-between">
-          <span>Mission Operations</span>
-          <span className="text-slate-500">STAGE {stage === 'IDLE' ? '0/3' : stage === 'HAZARDS_DETECTED' ? '1/3' : stage === 'SAFE_ZONES_COMPUTED' ? '2/3' : '3/3'}</span>
+      {/* Response plan: one step in focus at a time */}
+      <section className="flex-shrink-0 px-4 pb-2 pt-4" aria-labelledby="plan-heading">
+        <div className="flex items-baseline justify-between">
+          <h2 id="plan-heading" className={SECTION_HEADING}>
+            Response plan
+          </h2>
+          <span className="text-[13px] text-[#8D96A3]">{Math.min(stageIndex, 3)} of 3 done</span>
         </div>
+        <ol className="space-y-1">
+          <Step
+            index={1}
+            title="Detect flood areas"
+            description="Compare before and after satellite images."
+            doneSummary={`${hazardCount} found`}
+            actionLabel="Scan satellite images"
+            busyLabel="Scanning…"
+            state={stepState(0)}
+            busy={isLoading}
+            onAction={onScanTelemetry}
+          />
+          <Step
+            index={2}
+            title="Find shelters"
+            description="High ground at least 150 m from flooding."
+            doneSummary={`${shelterCount} available`}
+            actionLabel="Find shelters"
+            busyLabel="Searching…"
+            state={stepState(1)}
+            busy={isLoading}
+            onAction={onComputeSafeZones}
+          />
+          <Step
+            index={3}
+            title="Plan rescue route"
+            description="From the rescue team to the recommended shelter, avoiding flooding."
+            doneSummary={distance ?? 'Ready'}
+            actionLabel="Plan rescue route"
+            busyLabel="Planning…"
+            state={stepState(2)}
+            busy={isLoading}
+            onAction={onDispatchRoute}
+          />
+        </ol>
 
-        {/* Action 1: Ingest Satellite Telemetry */}
-        <button
-          onClick={onScanTelemetry}
-          disabled={isLoading || stage !== 'IDLE'}
-          className={`w-full text-left p-3 rounded-lg border transition-all flex items-start gap-3 relative overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-radar-crimson focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B111E] ${
-            stage === 'IDLE'
-              ? `bg-slate-900/90 border-radar-crimson/50 hover:border-radar-crimson hover:shadow-[0_0_15px_rgba(255,0,85,0.25)] text-slate-100 cursor-pointer ${isLoading ? '' : 'step-glow-crimson'}`
-              : stage === 'HAZARDS_DETECTED' || stage === 'SAFE_ZONES_COMPUTED' || stage === 'ROUTE_DISPATCHED'
-              ? 'bg-slate-900/40 border-slate-800 text-slate-400 opacity-80 cursor-default'
-              : 'opacity-50 cursor-not-allowed border-slate-800'
-          }`}
-        >
-          <div className="p-2 rounded bg-radar-crimson/10 text-radar-crimson border border-radar-crimson/30">
-            <Satellite className="w-4 h-4" />
+        {alert && (
+          <div
+            role="alert"
+            className="mt-3 flex items-start gap-2 rounded-md border border-[#F5A524]/60 bg-[#F5A524]/15 p-3 text-sm leading-snug text-[#FFE2A3]"
+          >
+            <AlertTriangle className="mt-0.5 h-4 w-4 flex-none text-[#F5C451]" aria-hidden="true" />
+            <span>{alert}</span>
           </div>
-          <div className="flex-1">
-            <div className="text-xs font-bold tracking-wide uppercase flex items-center justify-between">
-              <span>[01] INGEST SATELLITE DATA</span>
-              {stage !== 'IDLE' && <span className="text-[10px] text-radar-crimson font-mono">COMPLETE</span>}
-            </div>
-            <p className="text-[11px] text-slate-400 font-mono mt-1">
-              Run Qwen3-VL (4B) vision to detect breached corridors &amp; flood polygons
-            </p>
-          </div>
-        </button>
+        )}
 
-        {/* Action 2: Compute Safe Relief Zones */}
         <button
-          onClick={onComputeSafeZones}
-          disabled={isLoading || stage !== 'HAZARDS_DETECTED'}
-          className={`w-full text-left p-3 rounded-lg border transition-all flex items-start gap-3 relative overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-radar-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B111E] ${
-            stage === 'HAZARDS_DETECTED'
-              ? `bg-slate-900/90 border-radar-cyan/60 hover:border-radar-cyan hover:shadow-[0_0_15px_rgba(0,240,255,0.25)] text-slate-100 cursor-pointer ${isLoading ? '' : 'step-glow-cyan'}`
-              : stage === 'SAFE_ZONES_COMPUTED' || stage === 'ROUTE_DISPATCHED'
-              ? 'bg-slate-900/40 border-slate-800 text-slate-400 opacity-80 cursor-default'
-              : 'opacity-40 cursor-not-allowed border-slate-800 text-slate-500'
-          }`}
-        >
-          <div className="p-2 rounded bg-radar-cyan/10 text-radar-cyan border border-radar-cyan/30">
-            <ShieldCheck className="w-4 h-4" />
-          </div>
-          <div className="flex-1">
-            <div className="text-xs font-bold tracking-wide uppercase flex items-center justify-between">
-              <span>[02] COMPUTE RELIEF CAMPS</span>
-              {stage === 'SAFE_ZONES_COMPUTED' || stage === 'ROUTE_DISPATCHED' ? (
-                <span className="text-[10px] text-radar-cyan font-mono">RESOLVED</span>
-              ) : null}
-            </div>
-            <p className="text-[11px] text-slate-400 font-mono mt-1">
-              Turf.js elevation buffer & hazard exclusion spatial math
-            </p>
-          </div>
-        </button>
-
-        {/* Action 3: Dispatch Rescue Route */}
-        <button
-          onClick={onDispatchRoute}
-          disabled={isLoading || stage !== 'SAFE_ZONES_COMPUTED'}
-          className={`w-full text-left p-3 rounded-lg border transition-all flex items-start gap-3 relative overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-radar-green focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B111E] ${
-            stage === 'SAFE_ZONES_COMPUTED'
-              ? `bg-slate-900/90 border-radar-green/60 hover:border-radar-green hover:shadow-[0_0_15px_rgba(0,255,102,0.25)] text-slate-100 cursor-pointer ${isLoading ? '' : 'step-glow-green'}`
-              : stage === 'ROUTE_DISPATCHED'
-              ? 'bg-slate-900/40 border-slate-800 text-slate-400 opacity-80 cursor-default'
-              : 'opacity-40 cursor-not-allowed border-slate-800 text-slate-500'
-          }`}
-        >
-          <div className="p-2 rounded bg-radar-green/10 text-radar-green border border-radar-green/30">
-            <Navigation className="w-4 h-4" />
-          </div>
-          <div className="flex-1">
-            <div className="text-xs font-bold tracking-wide uppercase flex items-center justify-between">
-              <span>[03] DISPATCH RESCUE CORRIDOR</span>
-              {stage === 'ROUTE_DISPATCHED' && (
-                <span className="text-[10px] text-radar-green font-mono">DEPLOYED</span>
-              )}
-            </div>
-            <p className="text-[11px] text-slate-400 font-mono mt-1">
-              Calculate dynamic route bypassing AI hazard polygons
-            </p>
-          </div>
-        </button>
-
-        {/* Reset / Replay Demo */}
-        <button
+          type="button"
           onClick={onReset}
-          className="w-full py-2 px-3 rounded bg-slate-900 border border-slate-800 hover:border-slate-600 text-xs text-slate-400 hover:text-slate-200 transition-colors flex items-center justify-center gap-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B111E]"
+          className={`mt-2 flex h-10 items-center gap-2 rounded px-2 text-sm text-[#B4BBC5] hover:text-[#ECEEF1] ${FOCUS_RING}`}
         >
-          <RotateCcw className="w-3.5 h-3.5" />
-          <span>Reset Terminal State</span>
+          <RotateCcw className="h-4 w-4" aria-hidden="true" />
+          Start over
         </button>
-      </div>
+      </section>
 
-      {/* Intelligence Cards Section */}
-      <div className="px-4 pb-4 flex-1 overflow-y-auto space-y-3">
-        {hazardData && hazardData.features.length > 0 && (
-          <div className="p-3 rounded-lg bg-radar-crimson/5 border border-radar-crimson/30">
-            <div className="flex items-center gap-2 text-radar-crimson text-xs font-bold mb-1.5">
-              <AlertTriangle className="w-3.5 h-3.5" />
-              <span>DETECTED HAZARD CORRIDORS ({hazardData.features.length})</span>
-            </div>
-            <div className="space-y-1.5 max-h-32 overflow-y-auto pr-1">
-              {hazardData.features.map((feat, i) => (
-                <div key={i} className="text-[11px] font-mono bg-black/40 p-1.5 rounded border border-radar-crimson/20">
-                  <span className="text-radar-crimson font-bold">{feat.properties?.title || 'Hazard Polygon'}</span>
-                  <p className="text-slate-400 text-[10px] leading-tight mt-0.5">
-                    {feat.properties?.infrastructureImpact || 'Submerged infrastructure'}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
+      {/* Details: the answer first (route), then where to go (shelters), then the hazard */}
+      <div className="flex-1 space-y-5 overflow-y-auto border-t border-[#2B3038] p-4">
+        {stage === 'IDLE' && !isLoading && (
+          <p className="text-sm leading-relaxed text-[#8D96A3]">
+            Results appear here and on the map after each step.
+          </p>
         )}
 
-        {safeZoneData && safeZoneData.features.length > 0 && (
-          <div className="p-3 rounded-lg bg-radar-cyan/5 border border-radar-cyan/30">
-            <div className="flex items-center gap-2 text-radar-cyan text-xs font-bold mb-1.5">
-              <MapPin className="w-3.5 h-3.5" />
-              <span>OPTIMAL RELIEF CAMPS ({safeZoneData.features.length})</span>
-            </div>
-            <div className="space-y-1.5 max-h-32 overflow-y-auto pr-1">
-              {safeZoneData.features.map((feat, i) => (
-                <div key={i} className="text-[11px] font-mono bg-black/40 p-1.5 rounded border border-radar-cyan/20">
-                  <div className="flex justify-between items-center">
-                    <span className="text-radar-cyan font-bold">{feat.properties?.name || 'Safe Camp Site'}</span>
-                    <span className="text-[10px] text-slate-300">
-                      {feat.properties?.elevationM != null ? `+${feat.properties.elevationM}m` : '—'}
-                    </span>
-                  </div>
-                  <p className="text-slate-400 text-[10px] leading-tight mt-0.5">
-                    Cap: {feat.properties?.capacityPersons != null
-                      ? `${Number(feat.properties.capacityPersons).toLocaleString()} persons`
-                      : '—'} • {feat.properties?.roadAccess || '—'}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Real-time Tactical Terminal Logs */}
-      <div className="p-4 border-t border-slate-800 bg-[#070B12]/90 flex-shrink-0">
-        <div className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-slate-400 mb-1.5">
-          <Terminal className="w-3 h-3 text-radar-cyan" />
-          <span>AEGIS TELEMETRY STREAM</span>
-        </div>
-        <div className="h-28 overflow-y-auto bg-black/60 rounded p-2 border border-slate-800/80 font-mono text-[10px] space-y-1 text-slate-300">
-          {logs.map((log, index) => (
-            <div key={index} className="leading-snug">
-              <span className="text-slate-500 mr-1.5">&gt;</span>
-              {log.includes('CRITICAL') || log.includes('HAZARD') ? (
-                <span className="text-radar-crimson">{log}</span>
-              ) : log.includes('SAFE') || log.includes('RESOLVED') ? (
-                <span className="text-radar-cyan">{log}</span>
-              ) : log.includes('CORRIDOR') || log.includes('DEPLOYED') ? (
-                <span className="text-radar-green">{log}</span>
-              ) : (
-                <span>{log}</span>
+        {routeSummary && (
+          <section aria-labelledby="route-heading">
+            <h2 id="route-heading" className={SECTION_HEADING}>
+              Rescue route
+            </h2>
+            <div className="rounded-lg border border-[#30A46C]/50 bg-[#30A46C]/10 p-4">
+              <p className="flex items-baseline gap-1.5 tabular-nums">
+                {minutes !== null ? (
+                  <>
+                    <span className="text-4xl font-bold leading-none text-[#ECEEF1]">{minutes}</span>
+                    <span className="text-lg font-medium text-[#ECEEF1]">min</span>
+                    {distance && <span className="ml-2 text-lg text-[#B4BBC5]">{distance}</span>}
+                  </>
+                ) : (
+                  <span className="text-2xl font-bold text-[#ECEEF1]">{distance ?? 'Route ready'}</span>
+                )}
+              </p>
+              <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+                <dt className="text-[#8D96A3]">To</dt>
+                <dd className="font-medium text-[#ECEEF1]">{routeSummary.to}</dd>
+                <dt className="text-[#8D96A3]">From</dt>
+                <dd className="text-[#B4BBC5]">{routeSummary.from}</dd>
+              </dl>
+              {routeSummary.hasBlockedRoute && (
+                <p className="mt-3 flex items-center gap-2 text-sm text-[#B4BBC5]">
+                  <span className="inline-block w-5 flex-none border-t-[3px] border-dashed border-[#8B95A1]" aria-hidden="true" />
+                  Direct road blocked by flooding
+                </p>
               )}
             </div>
-          ))}
-        </div>
+          </section>
+        )}
+
+        {shelterCount > 0 && (
+          <section aria-labelledby="shelter-heading">
+            <h2 id="shelter-heading" className={SECTION_HEADING}>
+              Shelters ({shelterCount})
+            </h2>
+            <ul className="divide-y divide-[#2B3038] rounded-lg border border-[#2B3038] bg-[#1C2026]">
+              {shelters.map((feat, i) => {
+                const p = feat.properties ?? {};
+                const name = isMissing(p.name) ? 'Shelter' : String(p.name);
+                const recommended = primaryZoneName !== null && name === primaryZoneName;
+                return (
+                  <li key={feat.id ?? i} className="px-3 py-2.5">
+                    <div className="flex items-start gap-2">
+                      <span className="mt-1.5 h-2.5 w-2.5 flex-none rounded-sm bg-[#3B82F6]" aria-hidden="true" />
+                      <p className="min-w-0 flex-1 text-[15px] font-medium leading-snug text-[#ECEEF1]">{name}</p>
+                      {recommended && (
+                        <span className="flex-none rounded border border-[#3B82F6]/60 bg-[#3B82F6]/20 px-1.5 py-0.5 text-[13px] font-medium text-[#8DB8FF]">
+                          {stage === 'ROUTE_DISPATCHED' ? 'Destination' : 'Recommended'}
+                        </span>
+                      )}
+                    </div>
+                    <p className="ml-[18px] mt-0.5 text-sm tabular-nums text-[#B4BBC5]">
+                      {isMissing(p.capacityPersons) ? 'Capacity unknown' : `${Number(p.capacityPersons).toLocaleString()} people`}
+                      {!isMissing(p.elevationM) && ` · +${p.elevationM} m`}
+                    </p>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
+
+        {hazardCount > 0 && (
+          <section aria-labelledby="flood-heading">
+            <h2 id="flood-heading" className={SECTION_HEADING}>
+              Flood areas ({hazardCount})
+            </h2>
+            <ul className="divide-y divide-[#2B3038] rounded-lg border border-[#2B3038] bg-[#1C2026]">
+              {hazards.map((feat, i) => {
+                const p = feat.properties ?? {};
+                const sev = typeof p.severity === 'string' ? p.severity.toUpperCase() : '';
+                return (
+                  <li key={feat.id ?? i} className="px-3 py-2.5">
+                    <div className="flex items-start gap-2">
+                      <span className="mt-1.5 h-2.5 w-2.5 flex-none rounded-sm bg-[#E5484D]" aria-hidden="true" />
+                      <p className="min-w-0 flex-1 text-[15px] font-medium leading-snug text-[#ECEEF1]">
+                        {isMissing(p.title) ? 'Flood area' : String(p.title)}
+                      </p>
+                      {sev && (
+                        <span
+                          className={`flex-none rounded border px-1.5 py-0.5 text-[13px] font-medium ${
+                            SEVERITY_STYLE[sev] ?? 'border-[#4A525E] text-[#B4BBC5]'
+                          }`}
+                        >
+                          {humanize(sev)}
+                        </span>
+                      )}
+                    </div>
+                    {!isMissing(p.infrastructureImpact) && (
+                      <p className="ml-[18px] mt-0.5 text-sm leading-snug text-[#B4BBC5]">{String(p.infrastructureImpact)}</p>
+                    )}
+                    {!isMissing(p.waterDepthEstM) && (
+                      <p className="ml-[18px] mt-0.5 text-sm tabular-nums text-[#B4BBC5]">Water depth about {p.waterDepthEstM} m</p>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+            <p className="mt-2 text-[13px] text-[#8D96A3]">AI estimate from satellite images. Verify on the ground.</p>
+          </section>
+        )}
       </div>
+
     </aside>
   );
 };
