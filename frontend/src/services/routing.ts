@@ -6,7 +6,7 @@ import { GeoJsonFeatureCollection } from './api';
 /**
  * DEV 2 (Spatial Math & Routing Lead) Module:
  * Connects start coordinates (Trapped Civilians / Ambulance) to Safe Zone centroids,
- * avoiding the AI-detected hazard polygons.
+ * avoiding AI-detected hazard polygons.
  *
  * MAPBOX DIRECTIONS API SPECIFICATION:
  * Mapbox Directions API accepts an `exclude` parameter for road coordinates:
@@ -14,6 +14,17 @@ import { GeoJsonFeatureCollection } from './api';
  */
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || '';
+
+/**
+ * Sanitizes coordinate order: [lon, lat] for Klang River Basin.
+ */
+function sanitizeCoord(coord: [number, number]): [number, number] {
+  let [lon, lat] = coord;
+  if (lon < 50 && lat > 50) {
+    [lon, lat] = [lat, lon];
+  }
+  return [lon, lat];
+}
 
 /**
  * Extract road-hazard intersection points or hazard centroids for Mapbox exclusion.
@@ -37,7 +48,8 @@ export function extractHazardAvoidancePoints(
         const intersects = turf.lineIntersect(directFeature, hazard);
         for (const pt of intersects.features) {
           const [lon, lat] = pt.geometry.coordinates;
-          points.push([Number(lon.toFixed(4)), Number(lat.toFixed(4))]);
+          const [cleanLon, cleanLat] = sanitizeCoord([lon, lat]);
+          points.push([Number(cleanLon.toFixed(4)), Number(cleanLat.toFixed(4))]);
         }
       } catch (err) {
         console.warn('[ROUTER] Intersection calculation warning:', err);
@@ -48,7 +60,8 @@ export function extractHazardAvoidancePoints(
     try {
       const center = turf.centroid(hazard);
       const [lon, lat] = center.geometry.coordinates;
-      points.push([Number(lon.toFixed(4)), Number(lat.toFixed(4))]);
+      const [cleanLon, cleanLat] = sanitizeCoord([lon, lat]);
+      points.push([Number(cleanLon.toFixed(4)), Number(cleanLat.toFixed(4))]);
     } catch {
       // Ignore geometry errors
     }
@@ -71,6 +84,9 @@ export async function calculateRescueRoute(
   destinationCoord: [number, number] = [101.7015, 3.1418],
   hazardsOrAvoidPoints?: GeoJsonFeatureCollection | Array<[number, number]>
 ): Promise<GeoJsonFeatureCollection> {
+  const cleanStart = sanitizeCoord(startCoord);
+  const cleanDest = sanitizeCoord(destinationCoord);
+
   // If no Mapbox token is supplied or placeholder is used, return the golden avoidance route immediately
   if (!MAPBOX_TOKEN || MAPBOX_TOKEN.includes('your-username') || MAPBOX_TOKEN.includes('example')) {
     console.info('[ROUTER] Using pre-computed tactical route (Mapbox token not provided or demo fallback)');
@@ -78,21 +94,28 @@ export async function calculateRescueRoute(
   }
 
   try {
-    const coordsQuery = `${startCoord[0]},${startCoord[1]};${destinationCoord[0]},${destinationCoord[1]}`;
+    const coordsQuery = `${cleanStart[0]},${cleanStart[1]};${cleanDest[0]},${cleanDest[1]}`;
 
     // 1. Fetch the direct/standard shortest route (which cuts into flood zones)
     const directUrl = `https://api.mapbox.com/directions/v5/mapbox/driving/${coordsQuery}?geometries=geojson&overview=full&access_token=${MAPBOX_TOKEN}`;
-    const directRes = await fetch(directUrl);
-
     let directRouteGeom: any = null;
     let directDistanceKm = '2.40';
 
-    if (directRes.ok) {
-      const directData = await directRes.json();
-      directRouteGeom = directData.routes?.[0]?.geometry;
-      if (directData.routes?.[0]?.distance) {
-        directDistanceKm = (directData.routes[0].distance / 1000).toFixed(2);
+    try {
+      const directRes = await fetch(directUrl);
+      if (directRes.ok) {
+        const directData = await directRes.json();
+        if (directData.code === 'Ok' && directData.routes?.[0]?.geometry) {
+          directRouteGeom = directData.routes[0].geometry;
+          if (directData.routes[0].distance) {
+            directDistanceKm = (directData.routes[0].distance / 1000).toFixed(2);
+          }
+        }
+      } else {
+        console.warn(`[ROUTER] Direct route returned HTTP ${directRes.status}, falling back to cache.`);
       }
+    } catch (directErr) {
+      console.warn('[ROUTER] Direct route fetch error:', directErr);
     }
 
     // Fallback direct route geometry from golden cache if needed
@@ -104,7 +127,7 @@ export async function calculateRescueRoute(
     // 2. Resolve avoidance points
     let avoidPoints: Array<[number, number]> = [];
     if (Array.isArray(hazardsOrAvoidPoints)) {
-      avoidPoints = hazardsOrAvoidPoints;
+      avoidPoints = hazardsOrAvoidPoints.map(sanitizeCoord);
     } else {
       avoidPoints = extractHazardAvoidancePoints(hazardsOrAvoidPoints, directRouteGeom);
     }
@@ -121,15 +144,23 @@ export async function calculateRescueRoute(
         .join(',');
 
       const safeUrl = `https://api.mapbox.com/directions/v5/mapbox/driving/${coordsQuery}?geometries=geojson&overview=full&exclude=${encodeURIComponent(excludeParam)}&access_token=${MAPBOX_TOKEN}`;
-      const safeRes = await fetch(safeUrl);
-
-      if (safeRes.ok) {
-        const safeData = await safeRes.json();
-        avoidanceRouteGeom = safeData.routes?.[0]?.geometry;
-        if (safeData.routes?.[0]) {
-          safeDistanceKm = ((safeData.routes[0].distance || 0) / 1000).toFixed(2);
-          durationMin = ((safeData.routes[0].duration || 0) / 60).toFixed(1);
+      
+      try {
+        const safeRes = await fetch(safeUrl);
+        if (safeRes.ok) {
+          const safeData = await safeRes.json();
+          if (safeData.code === 'Ok' && safeData.routes?.[0]?.geometry) {
+            avoidanceRouteGeom = safeData.routes[0].geometry;
+            if (safeData.routes[0].distance) {
+              safeDistanceKm = ((safeData.routes[0].distance || 0) / 1000).toFixed(2);
+              durationMin = ((safeData.routes[0].duration || 0) / 60).toFixed(1);
+            }
+          }
+        } else {
+          console.warn(`[ROUTER] Excluded route returned HTTP ${safeRes.status}, falling back to cache.`);
         }
+      } catch (safeErr) {
+        console.warn('[ROUTER] Excluded route fetch error:', safeErr);
       }
     }
 
@@ -160,7 +191,7 @@ export async function calculateRescueRoute(
             icon: 'ambulance',
             color: '#FFB800',
           },
-          geometry: { type: 'Point', coordinates: startCoord },
+          geometry: { type: 'Point', coordinates: cleanStart },
         },
         {
           type: 'Feature',
@@ -171,7 +202,7 @@ export async function calculateRescueRoute(
             icon: 'shield-check',
             color: '#00F0FF',
           },
-          geometry: { type: 'Point', coordinates: destinationCoord },
+          geometry: { type: 'Point', coordinates: cleanDest },
         },
         {
           type: 'Feature',

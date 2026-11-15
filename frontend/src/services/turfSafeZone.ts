@@ -6,16 +6,81 @@ import { GeoJsonFeatureCollection } from './api';
  * DEV 2 (Spatial Architect) Engine:
  * Calculates optimal disaster relief camps by:
  * 1. Filtering candidate high-elevation open areas by minimum elevation
- * 2. Buffering danger polygons with a safety clearance buffer (e.g. 150m-200m)
- * 3. Computing polygon difference (turf.difference) to carve out flood zones
- * 4. Discarding engulfed candidate areas that have zero or sub-threshold usable area
- * 5. Deriving safe zone centroids and square meterage for routing endpoints
+ * 2. Sanitizing incoming AI hazard polygons (auto-correcting flipped coordinates, closing unclosed rings, unkinking self-intersections)
+ * 3. Buffering danger polygons with a safety clearance buffer (e.g. 150m-200m)
+ * 4. Computing polygon difference (turf.difference) to carve out flood zones
+ * 5. Discarding engulfed candidate areas that have zero or sub-threshold usable area
+ * 6. Deriving safe zone centroids and square meterage for routing endpoints
  */
 
 export interface SafeZoneCriteria {
   minElevationMeters: number;
   hazardBufferKm: number; // e.g. 0.15 km = 150m
   minUsableAreaSqM?: number; // minimum usable relief camp area in m²
+}
+
+/**
+ * Sanitizes input hazard features:
+ * 1. Flips inverted coordinates if [lat, lon] was accidentally provided
+ * 2. Ensures polygon linear rings are closed (first point === last point)
+ * 3. Resolves self-intersecting (kinked) polygons into clean valid polygons via turf.unkinkPolygon
+ */
+export function sanitizeHazardFeature(feature: any): any[] {
+  if (!feature || !feature.geometry) return [];
+  const geom = feature.geometry;
+
+  if (geom.type === 'Polygon') {
+    const coords = geom.coordinates.map((ring: any[]) => {
+      let cleaned = ring.map(([lon, lat]: [number, number]) => {
+        // If coordinate order was accidentally flipped (lat > 50, lon < 50 for KL)
+        if (lon < 50 && lat > 50) {
+          return [lat, lon];
+        }
+        return [lon, lat];
+      });
+
+      // Ensure ring has at least 3 distinct vertices and is closed
+      if (cleaned.length >= 3) {
+        const first = cleaned[0];
+        const last = cleaned[cleaned.length - 1];
+        if (first[0] !== last[0] || first[1] !== last[1]) {
+          cleaned.push([first[0], first[1]]);
+        }
+      }
+      return cleaned;
+    });
+
+    try {
+      const poly = turf.polygon(coords, feature.properties);
+      const kinks = turf.kinks(poly);
+      if (kinks.features.length > 0) {
+        return turf.unkinkPolygon(poly).features;
+      }
+      return [poly];
+    } catch {
+      return [feature];
+    }
+  }
+
+  if (geom.type === 'MultiPolygon') {
+    const polys: any[] = [];
+    for (const polygonCoords of geom.coordinates) {
+      try {
+        const poly = turf.polygon(polygonCoords, feature.properties);
+        const kinks = turf.kinks(poly);
+        if (kinks.features.length > 0) {
+          polys.push(...turf.unkinkPolygon(poly).features);
+        } else {
+          polys.push(poly);
+        }
+      } catch {
+        // Continue
+      }
+    }
+    return polys.length > 0 ? polys : [feature];
+  }
+
+  return [feature];
 }
 
 export function computeSafeReliefZones(
@@ -37,15 +102,20 @@ export function computeSafeReliefZones(
     // Combine all danger zones into a single unified buffer
     let bufferedHazards: any = null;
     if (dangerZones && dangerZones.features && dangerZones.features.length > 0) {
-      for (const feat of dangerZones.features) {
+      for (const rawFeat of dangerZones.features) {
         try {
-          if (!feat.geometry) continue;
-          const buffered = turf.buffer(feat, bufferDistance, { units: 'kilometers' });
-          if (buffered) {
-            if (!bufferedHazards) {
-              bufferedHazards = buffered;
-            } else {
-              bufferedHazards = turf.union(turf.featureCollection([bufferedHazards, buffered]));
+          if (!rawFeat.geometry) continue;
+
+          // Sanitize hazard polygon (close ring, flip inverted coords, unkink)
+          const sanitizedFeatures = sanitizeHazardFeature(rawFeat);
+          for (const feat of sanitizedFeatures) {
+            const buffered = turf.buffer(feat, bufferDistance, { units: 'kilometers' });
+            if (buffered) {
+              if (!bufferedHazards) {
+                bufferedHazards = buffered;
+              } else {
+                bufferedHazards = turf.union(turf.featureCollection([bufferedHazards, buffered]));
+              }
             }
           }
         } catch (bufErr) {
