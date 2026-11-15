@@ -1,0 +1,95 @@
+{
+  "type": "FeatureCollection",
+  "metadata": {
+    "computedBy": "Turf.js Spatial Multi-Criteria Evaluation Engine",
+    "criteria": {
+      "minElevationM": 45,
+      "maxDistanceToPrimaryRoadKm": 0.4,
+      "hazardClearanceBufferM": 250
+    },
+    "safeZoneCount": 3
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "id": "safe-alpha",
+      "properties": {
+        "name": "Relief Camp Alpha - Stadium Merdeka Plateau",
+        "status": "PRIMARY_TRIAGE_SITE",
+        "elevationM": 68,
+        "surfaceAreaSqM": 48200,
+        "capacityPersons": 5200,
+        "roadAccess": "Jalan Hang Jebat (Unimpeded)",
+        "helicopterLanding": true,
+        "color": "#00F0FF",
+        "centroid": [101.7015, 3.1418]
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [101.6990, 3.1435],
+            [101.7042, 3.1440],
+            [101.7048, 3.1395],
+            [101.7000, 3.1390],
+            [101.6990, 3.1435]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "safe-bravo",
+      "properties": {
+        "name": "Relief Camp Bravo - Bukit Petaling Highland",
+        "status": "SECONDARY_STAGING_BASE",
+        "elevationM": 82,
+        "surfaceAreaSqM": 36500,
+        "capacityPersons": 3800,
+        "roadAccess": "Jalan Petaling Arterial Ramp",
+        "helicopterLanding": false,
+        "color": "#05D9E8",
+        "centroid": [101.6960, 3.1275]
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [101.6935, 3.1295],
+            [101.6985, 3.1302],
+            [101.6992, 3.1255],
+            [101.6940, 3.1250],
+            [101.6935, 3.1295]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "safe-charlie",
+      "properties": {
+        "name": "Relief Camp Charlie - Bukit Nanas Forest Ridge",
+        "status": "BACKUP_SHELTER_SITE",
+        "elevationM": 94,
+        "surfaceAreaSqM": 29000,
+        "capacityPersons": 2500,
+        "roadAccess": "Jalan Ampang Elevated Access",
+        "helicopterLanding": true,
+        "color": "#00C2CB",
+        "centroid": [101.7025, 3.1530]
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [101.7005, 3.1550],
+            [101.7050, 3.1552],
+            [101.7055, 3.1510],
+            [101.7012, 3.1508],
+            [101.7005, 3.1550]
+          ]
+        ]
+      }
+    }
+  ]
+}

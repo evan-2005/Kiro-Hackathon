@@ -1,0 +1,93 @@
+{
+  "type": "FeatureCollection",
+  "metadata": {
+    "engine": "Mapbox Directions / Polygon Avoidance Engine",
+    "status": "SAFE_CORRIDOR_CALCULATED",
+    "metrics": {
+      "compromisedRouteDistanceKm": 2.4,
+      "safeRouteDistanceKm": 3.8,
+      "hazardClearanceM": 320,
+      "estimatedTravelTimeMin": 9.4
+    }
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "id": "start-point",
+      "properties": {
+        "title": "Ambulance Depot / Trapped Civilians (KL Sentral Sector)",
+        "type": "START",
+        "icon": "ambulance",
+        "color": "#FFB800"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [101.6865, 3.1340]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "destination-point",
+      "properties": {
+        "title": "Relief Camp Alpha (Stadium Merdeka Plateau)",
+        "type": "DESTINATION",
+        "icon": "shield-check",
+        "color": "#00F0FF"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [101.7015, 3.1418]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "compromised-route",
+      "properties": {
+        "title": "Standard Direct Route (COMPROMISED)",
+        "status": "IMPASSABLE",
+        "stroke": "#718096",
+        "strokeWidth": 3,
+        "strokeDasharray": [2, 2],
+        "warning": "Crosses into Critical Hazard Bravo (Federal Highway Underpass Washout)"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [101.6865, 3.1340],
+          [101.6885, 3.1348],
+          [101.6908, 3.1355],
+          [101.6930, 3.1362],
+          [101.6955, 3.1385],
+          [101.6980, 3.1402],
+          [101.7015, 3.1418]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "evacuation-route",
+      "properties": {
+        "title": "Dynamic Rescue Corridor (OPTIMIZED)",
+        "status": "ACTIVE_SECURE",
+        "stroke": "#00FF66",
+        "strokeWidth": 5,
+        "hazardAvoidanceSuccess": true
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [101.6865, 3.1340],
+          [101.6850, 3.1320],
+          [101.6845, 3.1285],
+          [101.6872, 3.1258],
+          [101.6910, 3.1245],
+          [101.6948, 3.1252],
+          [101.6975, 3.1278],
+          [101.6998, 3.1315],
+          [101.7020, 3.1360],
+          [101.7015, 3.1418]
+        ]
+      }
+    }
+  ]
+}

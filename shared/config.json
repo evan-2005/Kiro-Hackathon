@@ -1,0 +1,29 @@
+{
+  "mission": {
+    "name": "Project Aegis - Rapid Disaster Tactical Recovery",
+    "targetArea": "Klang River Basin Tactical Zone (Kuala Lumpur)",
+    "scenario": "Severe Monsoon Flash Flood & Transit Inundation",
+    "coordinateOrder": "[longitude, latitude]",
+    "satelliteTelemetry": {
+      "satellite": "Sentinel-1 SAR / Sentinel-2 Composite",
+      "resolution": "10m SAR Dual-Pol",
+      "timestamp": "2026-11-15T08:30:00Z"
+    }
+  },
+  "spatial": {
+    "center": [101.6938, 3.1408],
+    "zoom": 13.8,
+    "pitch": 52,
+    "bearing": -18,
+    "boundingBox": {
+      "minLon": 101.6600,
+      "minLat": 3.1100,
+      "maxLon": 101.7300,
+      "maxLat": 3.1700
+    }
+  },
+  "endpoints": {
+    "analyzeDisaster": "/api/analyze-disaster",
+    "health": "/api/health"
+  }
+}
