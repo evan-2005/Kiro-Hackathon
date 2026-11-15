@@ -26,6 +26,10 @@
 
 ## 🏗️ Architecture & Tech Stack
 
+<p align="center">
+  <img src="docs/assets/proposed-system-architecture.png" alt="Proposed System Architecture — Unified Aegis Dashboard, Aegis Intelligence & AWS Kill Switch" width="600" />
+</p>
+
 | Layer | Technology Stack | Key Capabilities |
 | :--- | :--- | :--- |
 | **Frontend UI & 3D GIS** | React 18, TypeScript, Vite, Tailwind CSS, `mapbox-gl` v3.8, `lucide-react` | "Orbital Defense Command" dark HUD (`#070B12`), 1.5x exaggerated 3D DEM terrain, extruded 3D buildings, animated dash-flow rescue corridors, before/after split-screen `SatelliteScanModal`, and stage-driven 3D camera choreography. |
