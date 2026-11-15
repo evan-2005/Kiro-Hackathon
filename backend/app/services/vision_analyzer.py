@@ -1,8 +1,9 @@
 import json
 import logging
-from typing import Dict, Any, Optional
+from time import perf_counter
+from typing import Dict, Any, Literal, Optional
 from openai import OpenAI
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from app.config import (
     OLLAMA_BASE_URL,
@@ -18,8 +19,8 @@ logger = logging.getLogger(__name__)
 class DetectedHazard(BaseModel):
     title: str = Field(description="Name or short descriptor of the hazard")
     hazard_type: str = Field(description="E.g., RIVER_OVERTOPPING, BRIDGE_WASHOUT, LANDSLIDE, STRUCTURAL_COLLAPSE")
-    severity: str = Field(description="CRITICAL, HIGH, or MODERATE")
-    water_depth_est_m: float = Field(description="Estimated water depth in meters")
+    severity: Literal["CRITICAL", "HIGH", "MODERATE"]
+    water_depth_est_m: Optional[float] = Field(ge=0, description="Depth in meters only if supported by evidence, otherwise null")
     impact_description: str = Field(description="Impact on transit and evacuation corridors")
     # Normalized bounding box in image coordinates (0.0 to 1.0)
     # top-left (min_x, min_y) to bottom-right (max_x, max_y)
@@ -27,6 +28,12 @@ class DetectedHazard(BaseModel):
     min_y: float = Field(ge=0.0, le=1.0)
     max_x: float = Field(ge=0.0, le=1.0)
     max_y: float = Field(ge=0.0, le=1.0)
+
+    @model_validator(mode="after")
+    def validate_box_order(self):
+        if self.min_x >= self.max_x or self.min_y >= self.max_y:
+            raise ValueError("Bounding boxes must have min_x < max_x and min_y < max_y")
+        return self
 
 class VisionAnalysisResult(BaseModel):
     summary: str
@@ -69,9 +76,9 @@ def normalize_box_to_geojson_polygon(hazard: DetectedHazard, bbox: dict) -> list
     # Counter-clockwise closed ring in [lon, lat]
     return [[
         [poly_min_lon, poly_max_lat],
-        [poly_max_lon, poly_max_lat],
-        [poly_max_lon, poly_min_lat],
         [poly_min_lon, poly_min_lat],
+        [poly_max_lon, poly_min_lat],
+        [poly_max_lon, poly_max_lat],
         [poly_min_lon, poly_max_lat]
     ]]
 
@@ -96,45 +103,55 @@ def analyze_disaster_imagery(
         client = OpenAI(
             base_url=OLLAMA_BASE_URL,
             api_key=VISION_API_KEY,
+            timeout=240.0,
+            max_retries=0,
         )
 
         messages = [
             {
                 "role": "system",
                 "content": (
-                    "You are Project Aegis's Tactical Orbital Damage Detector running on Qwen3-VL. "
-                    "Analyze post-disaster aerial/satellite imagery to locate flooded corridors, "
-                    "collapsed bridges, and submerged transit arteries. "
-                    "Return strictly JSON matching the requested schema with normalized coordinates [0.0 - 1.0] "
-                    "where min_x, min_y is top-left and max_x, max_y is bottom-right."
+                    "You analyze aligned, north-up optical satellite images of Kuala Lumpur. "
+                    "When BEFORE is supplied, compare it with AFTER and detect only new visible flooding "
+                    "outside normal river banks or visible structural damage in AFTER. "
+                    "Use tight bounding boxes around each connected affected area. Do not label normal rivers, "
+                    "shadows, or undamaged buildings as hazards. Return hazards=[] if no change is visible. "
+                    "Coordinates refer ONLY to the full AFTER image, excluding no margins: "
+                    "origin (0,0) is top-left, (1,1) is bottom-right, x increases right and y increases down. "
+                    "Return decimal ratios, never pixels, percentages, longitude/latitude, or 0-1000 values. "
+                    "Divide pixel x by image width and pixel y by image height. "
+                    "Require 0 <= min_x < max_x <= 1 and 0 <= min_y < max_y <= 1. "
+                    "For example, a box covering the middle quarter of an image has min_x=0.375, "
+                    "min_y=0.375, max_x=0.625, max_y=0.625. "
+                    "Do not invent named bridges, confirmed road closures, water depths or SAR measurements. "
+                    "Set water_depth_est_m=null unless depth evidence is provided. Describe visible impacts "
+                    "as suspected and requiring field verification. Return only JSON matching this schema: "
+                    + json.dumps(VisionAnalysisResult.model_json_schema())
                 )
             }
         ]
 
-        user_content: list[Dict[str, Any]] = [
-            {
-                "type": "text",
-                "text": "Detect all impassable flood hazards and structural breaches in this disaster zone."
-            },
-            {
-                "type": "image_url",
-                "image_url": {"url": after_image_url}
-            }
-        ]
-
+        user_content: list[Dict[str, Any]] = []
         if before_image_url:
-            user_content.insert(1, {
-                "type": "image_url",
-                "image_url": {"url": before_image_url}
-            })
+            user_content.extend([
+                {"type": "text", "text": "BEFORE: baseline image."},
+                {"type": "image_url", "image_url": {"url": before_image_url}},
+            ])
+        user_content.extend([
+            {"type": "text", "text": "AFTER: locate visible new floodwater or damage in this image."},
+            {"type": "image_url", "image_url": {"url": after_image_url}},
+        ])
 
         messages.append({"role": "user", "content": user_content})
 
+        started = perf_counter()
         response = client.beta.chat.completions.parse(
             model=VISION_MODEL,
             messages=messages,
             response_format=VisionAnalysisResult,
-            temperature=0.1,
+            temperature=0,
+            reasoning_effort="none",
+            max_tokens=4096,
         )
 
         parsed: VisionAnalysisResult = response.choices[0].message.parsed
@@ -153,6 +170,7 @@ def analyze_disaster_imagery(
                     "severity": hazard.severity,
                     "waterDepthEstM": hazard.water_depth_est_m,
                     "infrastructureImpact": hazard.impact_description,
+                    "bboxNormalized": [hazard.min_x, hazard.min_y, hazard.max_x, hazard.max_y],
                     "color": color
                 },
                 "geometry": {
@@ -167,6 +185,7 @@ def analyze_disaster_imagery(
                 "source": f"QWEN3_VL_LIVE_PIPELINE ({VISION_MODEL})",
                 "summary": parsed.summary,
                 "hazardCount": len(features),
+                "inferenceSeconds": round(perf_counter() - started, 3),
                 "boundingBox": BOUNDING_BOX
             },
             "features": features
