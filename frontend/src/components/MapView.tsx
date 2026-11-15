@@ -213,6 +213,10 @@ export const MapView: React.FC<MapViewProps> = ({
 
     map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'top-right');
 
+    // Redraw when the container changes size (e.g. the activity log is docked or moved)
+    const resizeObserver = new ResizeObserver(() => map.resize());
+    resizeObserver.observe(mapContainerRef.current);
+
     map.on('error', (e) => {
       try {
         console.warn('[MAP]', e?.error ?? e);
@@ -497,6 +501,7 @@ export const MapView: React.FC<MapViewProps> = ({
     });
 
     return () => {
+      resizeObserver.disconnect();
       popupRef.current?.remove();
       popupRef.current = null;
       map.remove();

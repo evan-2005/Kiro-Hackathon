@@ -77,7 +77,12 @@ directly so no shared config change was needed).
 - **Alert banner.** Any failure or warning appears as an amber `role="alert"` banner under the plan, never only in the log.
 - **Details — answer first.** Order is: Rescue route (ETA in 36px, then To/From) → Shelters (destination first) →
   Flood areas. Rows show only what a crew needs at a glance (name, capacity, elevation); the rest is in the map popup.
-- **Status line.** The latest activity message is always visible at the bottom; older messages are behind "History".
+- **Activity log (separate panel).** The log is the proof that each step uses real data, so it is its own large panel,
+  not part of the sidebar. Docked **right** by default; header buttons dock it left, bottom, or detach it as a floating
+  window (drag by the header, resize from the corner). It can be hidden ("Show activity log" button brings it back).
+  The chosen position is remembered in the browser. Entries run oldest → newest (auto-scroll), 15px text, and each
+  result lists its evidence: data source (AI backend vs cached file, Turf.js engine, live Mapbox vs cached route),
+  response time, coordinates, areas, rules applied and flood points avoided. Warnings and cached fallbacks are amber.
 - **Satellite image comparison** (step 1): dialog over the map only, before/after slider, indeterminate progress bar,
   result "N flood areas found — AI estimate", imagery attribution footer.
 

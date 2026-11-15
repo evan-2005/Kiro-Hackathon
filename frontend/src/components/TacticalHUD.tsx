@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle, Check, ChevronDown, Loader2, RotateCcw } from 'lucide-react';
+import { AlertTriangle, Check, Loader2, RotateCcw } from 'lucide-react';
 import { GeoJsonFeatureCollection } from '../services/api';
 
 type Stage = 'IDLE' | 'HAZARDS_DETECTED' | 'SAFE_ZONES_COMPUTED' | 'ROUTE_DISPATCHED';
@@ -15,7 +15,6 @@ export interface RouteSummary {
 interface TacticalHUDProps {
   stage: Stage;
   isLoading: boolean;
-  logs: string[];
   hazardData: GeoJsonFeatureCollection | null;
   safeZoneData: GeoJsonFeatureCollection | null;
   primaryZoneName: string | null;
@@ -46,11 +45,6 @@ const SEVERITY_STYLE: Record<string, string> = {
 
 const SECTION_HEADING = 'mb-2 text-[13px] font-semibold uppercase tracking-wide text-[#8D96A3]';
 const FOCUS_RING = 'focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6EA8FE]';
-
-const splitLog = (log: string): { time: string; text: string } => {
-  const sep = log.indexOf('  ');
-  return sep > 0 ? { time: log.slice(0, sep), text: log.slice(sep + 2) } : { time: '', text: log };
-};
 
 interface StepProps {
   index: number;
@@ -119,7 +113,6 @@ const Step: React.FC<StepProps> = ({ index, title, description, doneSummary, act
 export const TacticalHUD: React.FC<TacticalHUDProps> = ({
   stage,
   isLoading,
-  logs,
   hazardData,
   safeZoneData,
   primaryZoneName,
@@ -146,8 +139,6 @@ export const TacticalHUD: React.FC<TacticalHUDProps> = ({
 
   const distance = routeSummary && routeSummary.distanceKm !== null ? `${routeSummary.distanceKm.toFixed(1)} km` : null;
   const minutes = routeSummary && routeSummary.durationMin !== null ? Math.round(routeSummary.durationMin) : null;
-
-  const latest = splitLog(logs[0] ?? '');
 
   return (
     <aside className="z-30 flex h-full w-96 flex-none flex-col border-r border-[#2B3038] bg-[#16191E] font-sans text-[#ECEEF1]">
@@ -340,33 +331,6 @@ export const TacticalHUD: React.FC<TacticalHUDProps> = ({
         )}
       </div>
 
-      {/* Status: latest message always visible; full history on demand */}
-      <details className="group flex-shrink-0 border-t border-[#2B3038]">
-        <summary
-          className={`flex cursor-pointer list-none items-start gap-2 px-4 py-3 text-sm leading-snug [&::-webkit-details-marker]:hidden ${FOCUS_RING}`}
-        >
-          <span className="min-w-0 flex-1" aria-live="polite">
-            <span className="mr-2 tabular-nums text-[#8D96A3]">{latest.time}</span>
-            <span className="text-[#ECEEF1]">{latest.text}</span>
-          </span>
-          <span className="flex flex-none items-center gap-1 text-[13px] text-[#8D96A3]">
-            History
-            <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" aria-hidden="true" />
-          </span>
-        </summary>
-        <ol id="activity-history" className="max-h-40 space-y-1.5 overflow-y-auto px-4 pb-3 text-sm leading-snug">
-          {logs.slice(1).map((log, index) => {
-            const { time, text } = splitLog(log);
-            return (
-              <li key={index} className="flex gap-2">
-                <span className="flex-none tabular-nums text-[#8D96A3]">{time}</span>
-                <span className="text-[#B4BBC5]">{text}</span>
-              </li>
-            );
-          })}
-          {logs.length <= 1 && <li className="text-[#8D96A3]">No earlier activity.</li>}
-        </ol>
-      </details>
     </aside>
   );
 };
