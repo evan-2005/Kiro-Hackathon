@@ -168,7 +168,7 @@ const LEGEND: Array<{ label: string; swatch: string; minStage: number }> = [
   { label: 'Shelter', swatch: 'legend-swatch legend-swatch--shelter', minStage: 2 },
   { label: 'Rescue route', swatch: 'legend-line legend-line--route', minStage: 3 },
   { label: 'Blocked road', swatch: 'legend-line legend-line--blocked', minStage: 3 },
-  { label: 'Pickup point', swatch: 'legend-dot legend-dot--pickup', minStage: 3 },
+  { label: 'Rescue team', swatch: 'legend-dot legend-dot--start', minStage: 3 },
 ];
 
 // Base-map label groups that compete with the rescue data (roads, districts and water names stay)
@@ -408,7 +408,7 @@ export const MapView: React.FC<MapViewProps> = ({
         },
       });
 
-      // Small anchor dots under the pickup/shelter pins
+      // Small anchor dots under the start/destination pins
       map.addLayer({
         id: 'route-waypoints',
         type: 'circle',
@@ -532,7 +532,7 @@ export const MapView: React.FC<MapViewProps> = ({
     }
   }, [routeData, mapLoaded]);
 
-  // Labelled pickup / shelter pins for the route
+  // Labelled rescue-team start / destination pins for the route
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapLoaded || !routeData) return;
@@ -545,7 +545,7 @@ export const MapView: React.FC<MapViewProps> = ({
       const pointType = feature.properties?.type;
       const pin =
         feature.id === 'start-point' || pointType === 'START'
-          ? { variant: 'map-pin--pickup', label: 'Pickup' }
+          ? { variant: 'map-pin--start', label: 'Rescue team' }
           : feature.id === 'destination-point' || pointType === 'DESTINATION'
             ? { variant: 'map-pin--shelter', label: 'Destination' }
             : null;

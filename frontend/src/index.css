@@ -175,7 +175,7 @@
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
 }
 
-.map-pin--pickup {
+.map-pin--start {
   --pin-color: #F5A524;
 }
 
@@ -242,7 +242,7 @@
   border: 2px solid #FFFFFF;
 }
 
-.legend-dot--pickup {
+.legend-dot--start {
   background: #F5A524;
 }
 

@@ -10,7 +10,7 @@
    dark neutral surfaces, no neon, no glows, no scanlines, no fake telemetry, no spinning "system online" widgets.
 2. **Plain language.** Say what the thing is and what to do: "Detect flood areas", "Find shelters", "Plan rescue route",
    "Start over". No bracket tags (`[01]`, `[SAT-LINK]`), no jargon ("telemetry", "corridor", "orbital").
-3. **Standard emergency colours.** Red = flood/danger, blue = shelter, green = rescue route, amber = pickup point,
+3. **Standard emergency colours.** Red = flood/danger, blue = shelter, green = rescue route, amber = rescue team,
    grey dashed = blocked road. Colour is never the only signal (legend, labels and text always accompany it).
 4. **Honest about the AI and the data.** Detection results are labelled "AI estimate — verify on the ground".
    The scenario is labelled "Simulated scenario". Imagery credits are shown. No model names in the main UI.
@@ -30,7 +30,7 @@
 | Text muted | `#8D96A3` (5.5:1 on Raised) | Timestamps, section headings, upcoming steps. Never darker than this |
 | Flood | `#E5484D` (text tint `#FF8B8E`) | Flood polygons, "Critical" severity |
 | High severity | `#F76B15` (text `#FFB27A`) | "High" severity badge |
-| Pickup / caution | `#F5A524` (text `#F5C451`) | Pickup pin, "Elevated" severity, "Simulated scenario" tag, warnings |
+| Rescue team / caution | `#F5A524` (text `#F5C451`) | Rescue-team pin, "Elevated" severity, "Simulated scenario" tag, warnings |
 | Shelter | `#3B82F6` (text `#8DB8FF`) | Shelter polygons, shelter pin, "Recommended"/"Destination" tag |
 | Route | `#30A46C` | Rescue route line, completed-step check |
 | Blocked | `#8B95A1` | Dashed blocked direct road |
@@ -57,9 +57,9 @@ directly so no shared config change was needed).
 |  Flood response        [Simulated tag]   |  ┌ Legend ┐                       [+][-][N]  |
 |  Klang River basin, Kuala Lumpur         |  │ ■ Flood area   ■ Shelter │                  |
 |  ─────────────────────────────────────── |  │ ━ Rescue route ┅ Blocked │                  |
-|  RESPONSE PLAN               1 of 3 done |  │ ● Pickup point           │                  |
+|  RESPONSE PLAN               1 of 3 done |  │ ● Rescue team            │                  |
 |  (✓) Detect flood areas  1 area found    |  └──────────┘                                 |
-|  (2) Find shelters                       |        red flood polygon ── ● Pickup          |
+|  (2) Find shelters                       |        ● Rescue team   red flood polygon      |
 |      [ Find shelters ]  ← primary button |                 green route ──▶ ● Shelter     |
 |  (3) Plan rescue route   (muted)         |                                              |
 |  ↺ Start over                            |                                              |
@@ -94,7 +94,7 @@ directly so no shared config change was needed).
 | `route-safe-flow` | line | `route-src` | White 1.5px at 55%, slow direction-of-travel dashes (off with reduced motion) |
 | `route-waypoints` | circle | `route-src` | 4px anchor dot under the HTML pins |
 
-**Pins:** 22px HTML markers with a 14px text label — amber **Pickup** and blue **Destination**.
+**Pins:** 22px HTML markers with a 14px text label — amber **Rescue team** and blue **Destination**.
 **Direct labels:** layer `safe-zones-label` writes each shelter's short name on the map (text before " - ").
 **Decluttered base map:** POI, transit, airport and natural-point labels are hidden; roads, districts and water names stay.
 **Legend:** hidden while the map is empty; each entry appears only once that thing is on the map.
@@ -120,8 +120,8 @@ fixed fallbacks are used only when there is no data.
 
 ## 7. Rescue flow semantics
 
-- **Pickup point** = where people are trapped: a point guaranteed to lie **inside the largest detected flood area**
-  (`turf.pointOnFeature`), so the route starts in the red zone and leads out of it.
+- **Start** = the rescue team's own location, so it is **outside** the flood area. For the demo it is hard-coded to
+  KL Sentral `[101.6865, 3.1340]` (SPEC.md). Planned: use the device's real location (`navigator.geolocation`).
 - **Destination** = the recommended shelter (first zone from `computeSafeReliefZones`, i.e. largest usable area).
 - The **blocked road** (grey dashed) is the direct route the router reports as impassable.
 

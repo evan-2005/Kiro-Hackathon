@@ -196,7 +196,7 @@ export const TacticalHUD: React.FC<TacticalHUDProps> = ({
           <Step
             index={3}
             title="Plan rescue route"
-            description="From the pickup point to the recommended shelter."
+            description="From the rescue team to the recommended shelter, avoiding flooding."
             doneSummary={distance ?? 'Ready'}
             actionLabel="Plan rescue route"
             busyLabel="Planning…"

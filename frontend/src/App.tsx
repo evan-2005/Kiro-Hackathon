@@ -17,8 +17,10 @@ const AFTER_IMAGE_SRC = '/imagery/after.jpg';
 const SCAN_MIN_DURATION_MS = 3000;
 const SCAN_COMPLETE_HOLD_MS = 1200;
 
-// Last-resort pickup if no flood area has usable geometry (KL Sentral, SPEC.md) — [lon, lat]
-const DEFAULT_PICKUP: [number, number] = [101.6865, 3.1340];
+// Rescue team's starting location. Hard-coded for the demo (KL Sentral, SPEC.md) — [lon, lat].
+// TODO: replace with the device's real location (navigator.geolocation) when there is time.
+const RESCUER_START: [number, number] = [101.6865, 3.1340];
+const RESCUER_START_LABEL = 'Rescue team · KL Sentral';
 // Last-resort destination (Relief Camp Alpha, SPEC.md) — [lon, lat]
 const DEFAULT_DESTINATION: [number, number] = [101.7015, 3.1418];
 const BBOX = missionConfig.spatial.boundingBox;
@@ -27,7 +29,6 @@ type SafeZoneFeature = Feature<
   Polygon | MultiPolygon,
   { name?: unknown; elevationM?: unknown; centroid?: unknown } | null
 >;
-type HazardFeature = Feature<Polygon | MultiPolygon, { title?: unknown } | null>;
 
 const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
@@ -44,32 +45,6 @@ const isLonLatInBBox = (coord: unknown): coord is [number, number] =>
 
 const display = (v: unknown, fallback = '—'): string =>
   v === undefined || v === null || v === '' ? fallback : String(v);
-
-/**
- * Pickup point = where people are trapped: a point guaranteed to lie INSIDE the largest
- * detected flood area (turf.pointOnFeature), so the rescue starts in the red zone.
- */
-const getPickup = (
-  hazards: GeoJsonFeatureCollection | null
-): { coord: [number, number]; hazardTitle: string | null } => {
-  let best: { coord: [number, number]; area: number; title: string | null } | null = null;
-  for (const feature of (hazards?.features ?? []) as HazardFeature[]) {
-    const type = feature?.geometry?.type;
-    if (type !== 'Polygon' && type !== 'MultiPolygon') continue;
-    try {
-      const area = turf.area(feature);
-      const point = turf.pointOnFeature(feature).geometry.coordinates;
-      if (!isLonLatInBBox(point)) continue;
-      if (!best || area > best.area) {
-        const title = feature.properties?.title;
-        best = { coord: [point[0], point[1]], area, title: typeof title === 'string' ? title : null };
-      }
-    } catch {
-      // Skip invalid geometry
-    }
-  }
-  return best ? { coord: best.coord, hazardTitle: best.title } : { coord: DEFAULT_PICKUP, hazardTitle: null };
-};
 
 /** Distance/time from either Dev 2's live metadata or the cached route's metrics. */
 const readRouteMetrics = (route: GeoJsonFeatureCollection): { distanceKm: number | null; durationMin: number | null } => {
@@ -192,16 +167,13 @@ export function App() {
     }
   };
 
-  // Step 3: plan the rescue route from the pickup point (inside the flood area) to the shelter
+  // Step 3: plan the rescue route from the rescue team's location to the shelter
   const handleDispatchRoute = async () => {
     setIsLoading(true);
     setAlert(null);
     const runId = ++runIdRef.current;
-    const pickup = getPickup(hazardData);
     const shelterName = display(primaryZone?.properties?.name, 'shelter');
-    addLog(
-      `Planning route from pickup point${pickup.hazardTitle ? ` in ${pickup.hazardTitle}` : ''} to ${shelterName}…`
-    );
+    addLog(`Planning route from the rescue team's location to ${shelterName}…`);
 
     // Destination: Dev 2's centroid if valid, else Turf centroid of the zone, else Camp Alpha default
     let destination: [number, number] | null = null;
@@ -228,7 +200,7 @@ export function App() {
       // the direct road route crosses each hazard; centroid-only points leave the route unchanged.
       // If hazards are somehow missing, fall back to Dev 2's helper (which uses the golden cache).
       const avoidInput = hazardData?.features.length ? hazardData : extractHazardAvoidancePoints(hazardData);
-      const route = await calculateRescueRoute(pickup.coord, destination, avoidInput);
+      const route = await calculateRescueRoute(RESCUER_START, destination, avoidInput);
       if (runId !== runIdRef.current) return;
 
       const { distanceKm, durationMin } = readRouteMetrics(route);
@@ -239,7 +211,7 @@ export function App() {
       setRouteSummary({
         distanceKm,
         durationMin,
-        from: pickup.hazardTitle ? `Pickup in ${pickup.hazardTitle}` : 'Pickup point',
+        from: RESCUER_START_LABEL,
         to: shelterName,
         hasBlockedRoute: hasBlocked,
       });
