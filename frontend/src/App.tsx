@@ -113,7 +113,7 @@ export function App() {
     if (!hazardData) return;
     setIsLoading(true);
     addLog('[TURF-ENGINE] Computing topographic multi-criteria elevation model...');
-    addLog('[TURF-ENGINE] Buffering hazard polygons (+200m safety clearance)...');
+    addLog('[TURF-ENGINE] Buffering hazard polygons (+150m safety clearance)...');
 
     try {
       const computed = computeSafeReliefZones(hazardData);
