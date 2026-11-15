@@ -13,6 +13,31 @@ interface MapViewProps {
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || '';
 
+// Standard Mapbox "animated dash" sequence for the rescue-route flow layer
+const DASH_ARRAY_SEQUENCE: number[][] = [
+  [0, 4, 3],
+  [0.5, 4, 2.5],
+  [1, 4, 2],
+  [1.5, 4, 1.5],
+  [2, 4, 1],
+  [2.5, 4, 0.5],
+  [3, 4, 0],
+  [0, 0.5, 3, 3.5],
+  [0, 1, 3, 3],
+  [0, 1.5, 3, 2.5],
+  [0, 2, 3, 2],
+  [0, 2.5, 3, 1.5],
+  [0, 3, 3, 1],
+  [0, 3.5, 3, 0.5],
+];
+const DASH_STEP_MS = 50;
+
+interface RoutePointFeature {
+  id?: string | number;
+  properties?: { type?: unknown } | null;
+  geometry?: { type?: string; coordinates?: unknown } | null;
+}
+
 // Popup content is built with textContent only: hazard properties come from an AI model (untrusted).
 type FeatureProps = Record<string, unknown> | null | undefined;
 
@@ -64,6 +89,7 @@ export const MapView: React.FC<MapViewProps> = ({
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const popupRef = useRef<mapboxgl.Popup | null>(null);
+  const routeMarkersRef = useRef<mapboxgl.Marker[]>([]);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [tokenMissing, setTokenMissing] = useState(false);
 
@@ -229,10 +255,48 @@ export const MapView: React.FC<MapViewProps> = ({
         type: 'line',
         source: 'route-src',
         filter: ['==', 'status', 'ACTIVE_SECURE'],
+        layout: {
+          'line-cap': 'round',
+          'line-join': 'round',
+        },
         paint: {
           'line-color': '#00FF66',
           'line-width': 5,
           'line-opacity': 0.95,
+        },
+      });
+
+      // Soft glow under the active rescue route
+      map.addLayer(
+        {
+          id: 'route-safe-glow',
+          type: 'line',
+          source: 'route-src',
+          filter: ['==', 'status', 'ACTIVE_SECURE'],
+          layout: {
+            'line-cap': 'round',
+            'line-join': 'round',
+          },
+          paint: {
+            'line-color': '#00FF66',
+            'line-width': 14,
+            'line-blur': 8,
+            'line-opacity': 0.35,
+          },
+        },
+        'route-safe'
+      );
+
+      // Moving dashes above the active rescue route
+      map.addLayer({
+        id: 'route-safe-flow',
+        type: 'line',
+        source: 'route-src',
+        filter: ['==', 'status', 'ACTIVE_SECURE'],
+        paint: {
+          'line-color': '#D1FFE3',
+          'line-width': 2,
+          'line-dasharray': DASH_ARRAY_SEQUENCE[0],
         },
       });
 
@@ -330,6 +394,60 @@ export const MapView: React.FC<MapViewProps> = ({
       source.setData(routeData || { type: 'FeatureCollection', features: [] });
     }
   }, [routeData, mapLoaded]);
+
+  // Pulsing start / destination markers for the route
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapLoaded || !routeData) return;
+
+    for (const feature of routeData.features as RoutePointFeature[]) {
+      if (feature?.geometry?.type !== 'Point') continue;
+      const coords = feature.geometry.coordinates;
+      if (!Array.isArray(coords) || typeof coords[0] !== 'number' || typeof coords[1] !== 'number') continue;
+
+      const pointType = feature.properties?.type;
+      const variant =
+        feature.id === 'start-point' || pointType === 'START'
+          ? 'pulse-amber'
+          : feature.id === 'destination-point' || pointType === 'DESTINATION'
+            ? 'pulse-cyan'
+            : null;
+      if (!variant) continue;
+
+      const element = document.createElement('div');
+      element.className = `pulse-marker ${variant}`;
+      const marker = new mapboxgl.Marker({ element })
+        .setLngLat([coords[0], coords[1]]) // [lon, lat]
+        .addTo(map);
+      routeMarkersRef.current.push(marker);
+    }
+
+    return () => {
+      routeMarkersRef.current.forEach((marker) => marker.remove());
+      routeMarkersRef.current = [];
+    };
+  }, [routeData, mapLoaded]);
+
+  // Animated dash flow along the rescue route (only once dispatched)
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapLoaded || stage !== 'ROUTE_DISPATCHED') return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    let frameId = 0;
+    let step = -1;
+    const animate = (timestamp: number) => {
+      const nextStep = Math.floor(timestamp / DASH_STEP_MS) % DASH_ARRAY_SEQUENCE.length;
+      if (nextStep !== step && map.getLayer('route-safe-flow')) {
+        map.setPaintProperty('route-safe-flow', 'line-dasharray', DASH_ARRAY_SEQUENCE[nextStep]);
+        step = nextStep;
+      }
+      frameId = requestAnimationFrame(animate);
+    };
+    frameId = requestAnimationFrame(animate);
+
+    return () => cancelAnimationFrame(frameId);
+  }, [stage, mapLoaded]);
 
   // Close any open popup on Reset
   useEffect(() => {
