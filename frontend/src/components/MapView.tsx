@@ -587,7 +587,7 @@ export const MapView: React.FC<MapViewProps> = ({
       </div>
 
       {/* Tactical Compass / Status Ring */}
-      <div className="absolute bottom-6 right-6 pointer-events-none z-10">
+      <div className="absolute bottom-6 left-6 pointer-events-none z-10">
         <div className="relative w-24 h-24 rounded-full border border-radar-cyan/30 flex items-center justify-center bg-[#070B12]/60 backdrop-blur-sm">
           <div className="absolute inset-1 rounded-full border border-dashed border-radar-cyan/20 animate-spin" style={{ animationDuration: '20s' }} />
           <div className="text-[9px] font-mono text-radar-cyan/80 text-center leading-tight">

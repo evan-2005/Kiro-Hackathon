@@ -5,6 +5,7 @@ import missionConfig from '@shared/config.json';
 import { MapView } from './components/MapView';
 import { TacticalHUD } from './components/TacticalHUD';
 import { SatelliteScanModal } from './components/SatelliteScanModal';
+import { TelemetryConsole } from './components/TelemetryConsole';
 import {
   runDisasterScan,
   GeoJsonFeatureCollection,
@@ -250,6 +251,7 @@ export function App() {
           hazardCount={scanHazardCount}
           onClose={closeScanModal}
         />
+        <TelemetryConsole logs={logs} stage={stage} />
       </main>
     </div>
   );

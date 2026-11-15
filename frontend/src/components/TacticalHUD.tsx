@@ -205,27 +205,15 @@ export const TacticalHUD: React.FC<TacticalHUDProps> = ({
         )}
       </div>
 
-      {/* Real-time Tactical Terminal Logs */}
-      <div className="p-4 border-t border-slate-800 bg-[#070B12]/90 flex-shrink-0">
-        <div className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-slate-400 mb-1.5">
-          <Terminal className="w-3 h-3 text-radar-cyan" />
-          <span>AEGIS TELEMETRY STREAM</span>
+      {/* Telemetry Status Bar */}
+      <div className="p-3 border-t border-slate-800 bg-[#070B12]/90 flex-shrink-0 flex items-center justify-between text-[11px] font-mono">
+        <div className="flex items-center gap-2 text-slate-400">
+          <Terminal className="w-3.5 h-3.5 text-radar-cyan" />
+          <span className="uppercase tracking-wider">Aegis Telemetry</span>
         </div>
-        <div className="h-28 overflow-y-auto bg-black/60 rounded p-2 border border-slate-800/80 font-mono text-[10px] space-y-1 text-slate-300">
-          {logs.map((log, index) => (
-            <div key={index} className="leading-snug">
-              <span className="text-slate-500 mr-1.5">&gt;</span>
-              {log.includes('CRITICAL') || log.includes('HAZARD') ? (
-                <span className="text-radar-crimson">{log}</span>
-              ) : log.includes('SAFE') || log.includes('RESOLVED') ? (
-                <span className="text-radar-cyan">{log}</span>
-              ) : log.includes('CORRIDOR') || log.includes('DEPLOYED') ? (
-                <span className="text-radar-green">{log}</span>
-              ) : (
-                <span>{log}</span>
-              )}
-            </div>
-          ))}
+        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-radar-cyan/10 border border-radar-cyan/30 text-radar-cyan text-[10px] font-bold">
+          <span>HUD CONSOLE</span>
+          <span className="text-radar-green font-bold">&gt;&gt;</span>
         </div>
       </div>
     </aside>
