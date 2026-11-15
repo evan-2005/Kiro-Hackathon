@@ -101,6 +101,8 @@ export function App() {
   const [scanStatus, setScanStatus] = useState<'scanning' | 'complete'>('scanning');
   const [scanHazardCount, setScanHazardCount] = useState<number | null>(null);
   const [primaryZone, setPrimaryZone] = useState<SafeZoneFeature | null>(null);
+  // Problems must be impossible to miss: shown as a banner, not only as a log line
+  const [alert, setAlert] = useState<string | null>(null);
   // Bumped by every async step and by Reset, so a slow result finishing after Reset is ignored
   const runIdRef = useRef(0);
 
@@ -113,6 +115,7 @@ export function App() {
   // Step 1: detect flood areas from satellite imagery
   const handleScanTelemetry = async () => {
     setIsLoading(true);
+    setAlert(null);
     addLog('Scanning before/after satellite images of the Klang River basin…');
 
     const runId = ++runIdRef.current;
@@ -149,6 +152,7 @@ export function App() {
       if (runId !== runIdRef.current) return;
       setScanModalOpen(false);
       addLog(`Scan failed: ${e}`);
+      setAlert('Scan failed. Check the connection and try again.');
     } finally {
       if (runId === runIdRef.current) setIsLoading(false);
     }
@@ -158,6 +162,7 @@ export function App() {
   const handleComputeSafeZones = () => {
     if (!hazardData) return;
     setIsLoading(true);
+    setAlert(null);
     addLog('Looking for high ground at least 150 m from flood areas…');
 
     try {
@@ -166,6 +171,7 @@ export function App() {
       const primary = (computed.features[0] as SafeZoneFeature | undefined) ?? null;
       if (!primary) {
         addLog('Warning: no safe ground found nearby.');
+        setAlert('No safe ground found nearby. Shelters cannot be recommended.');
         return;
       }
 
@@ -180,6 +186,7 @@ export function App() {
       );
     } catch (e) {
       addLog(`Shelter search failed: ${e}`);
+      setAlert('Shelter search failed. Try again.');
     } finally {
       setIsLoading(false);
     }
@@ -188,6 +195,7 @@ export function App() {
   // Step 3: plan the rescue route from the pickup point (inside the flood area) to the shelter
   const handleDispatchRoute = async () => {
     setIsLoading(true);
+    setAlert(null);
     const runId = ++runIdRef.current;
     const pickup = getPickup(hazardData);
     const shelterName = display(primaryZone?.properties?.name, 'shelter');
@@ -211,6 +219,7 @@ export function App() {
     if (!destination) {
       console.warn('[ROUTER] Primary safe-zone centroid unavailable or outside mission bbox; using default destination');
       addLog('Warning: shelter location unclear; routing to Relief Camp Alpha.');
+      setAlert('Shelter location unclear. Route goes to Relief Camp Alpha — confirm before dispatch.');
       destination = DEFAULT_DESTINATION;
     }
 
@@ -249,6 +258,7 @@ export function App() {
     } catch (e) {
       if (runId !== runIdRef.current) return;
       addLog(`Route planning failed: ${e}`);
+      setAlert('Route planning failed. Try again.');
     } finally {
       if (runId === runIdRef.current) setIsLoading(false);
     }
@@ -265,6 +275,7 @@ export function App() {
     setPrimaryZone(null);
     setRouteData(null);
     setRouteSummary(null);
+    setAlert(null);
     setLogs([`${timestamp()}  Started over. ${INITIAL_LOG}`]);
   };
 
@@ -278,6 +289,7 @@ export function App() {
         safeZoneData={safeZoneData}
         primaryZoneName={primaryZone ? display(primaryZone.properties?.name) : null}
         routeSummary={routeSummary}
+        alert={alert}
         onScanTelemetry={handleScanTelemetry}
         onComputeSafeZones={handleComputeSafeZones}
         onDispatchRoute={handleDispatchRoute}

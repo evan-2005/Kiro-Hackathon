@@ -39,7 +39,7 @@
   padding: 12px 14px;
   color: #ECEEF1;
   font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  font-size: 13px;
+  font-size: 14px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
 }
 
@@ -64,9 +64,11 @@
 }
 
 .info-popup .mapboxgl-popup-close-button {
-  color: #A1A8B3;
-  font-size: 18px;
-  padding: 2px 8px;
+  color: #B4BBC5;
+  font-size: 22px;
+  width: 36px;
+  height: 36px;
+  padding: 0;
   background: transparent;
 }
 
@@ -79,11 +81,11 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding-right: 14px;
+  padding-right: 22px;
 }
 
 .info-popup-kind {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -98,7 +100,7 @@
 }
 
 .info-popup-title {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   line-height: 1.3;
 }
@@ -106,7 +108,7 @@
 .info-popup-badge {
   align-self: flex-start;
   margin: 2px 0;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 500;
   border-radius: 4px;
   padding: 1px 6px;
@@ -140,7 +142,7 @@
 }
 
 .info-popup-label {
-  color: #A1A8B3;
+  color: #B4BBC5;
   white-space: nowrap;
 }
 
@@ -157,18 +159,18 @@
 
 .info-popup-note {
   margin-top: 2px;
-  font-size: 11px;
-  color: #6B7380;
+  font-size: 13px;
+  color: #8D96A3;
 }
 
 /* ---------- Route pins (MapView) ----------
    No `position` on .map-pin: Mapbox's .mapboxgl-marker sets position:absolute, which also anchors the label.
    Overriding it to relative pushes every marker after the first out of place. */
 .map-pin {
-  width: 16px;
-  height: 16px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
-  border: 2px solid #FFFFFF;
+  border: 3px solid #FFFFFF;
   background: var(--pin-color);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
 }
@@ -183,24 +185,24 @@
 
 .map-pin-label {
   position: absolute;
-  left: 20px;
+  left: 26px;
   top: 50%;
   transform: translateY(-50%);
   white-space: nowrap;
-  padding: 1px 6px;
+  padding: 2px 8px;
   border-radius: 4px;
-  background: rgba(15, 17, 21, 0.9);
-  border: 1px solid #2B3038;
+  background: rgba(15, 17, 21, 0.95);
+  border: 1px solid #4A525E;
   color: #ECEEF1;
-  font: 600 11px/1.4 ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font: 600 14px/1.4 ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   pointer-events: none;
 }
 
 /* ---------- Map legend (MapView) ---------- */
 .legend-swatch {
   display: inline-block;
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
   border-radius: 2px;
   border: 2px solid;
 }
@@ -217,9 +219,9 @@
 
 .legend-line {
   display: inline-block;
-  width: 12px;
+  width: 14px;
   height: 0;
-  border-top-width: 3px;
+  border-top-width: 4px;
 }
 
 .legend-line--route {
@@ -234,8 +236,8 @@
 
 .legend-dot {
   display: inline-block;
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
   border: 2px solid #FFFFFF;
 }
@@ -263,4 +265,10 @@
   to {
     left: 100%;
   }
+}
+
+/* ---------- Map zoom / compass controls: touch-sized (44px) ---------- */
+.mapboxgl-ctrl-group button {
+  width: 44px;
+  height: 44px;
 }

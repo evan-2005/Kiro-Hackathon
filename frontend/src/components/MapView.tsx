@@ -156,13 +156,23 @@ const buildSafeZonePopup = (props: FeatureProps): HTMLElement => {
   return root;
 };
 
-const LEGEND: Array<{ label: string; swatch: string }> = [
-  { label: 'Flood area', swatch: 'legend-swatch legend-swatch--flood' },
-  { label: 'Shelter', swatch: 'legend-swatch legend-swatch--shelter' },
-  { label: 'Rescue route', swatch: 'legend-line legend-line--route' },
-  { label: 'Blocked road', swatch: 'legend-line legend-line--blocked' },
-  { label: 'Pickup point', swatch: 'legend-dot legend-dot--pickup' },
+// Legend items appear only once they are on the map (minStage = index in the 4-stage flow)
+const STAGE_INDEX: Record<MissionStage, number> = {
+  IDLE: 0,
+  HAZARDS_DETECTED: 1,
+  SAFE_ZONES_COMPUTED: 2,
+  ROUTE_DISPATCHED: 3,
+};
+const LEGEND: Array<{ label: string; swatch: string; minStage: number }> = [
+  { label: 'Flood area', swatch: 'legend-swatch legend-swatch--flood', minStage: 1 },
+  { label: 'Shelter', swatch: 'legend-swatch legend-swatch--shelter', minStage: 2 },
+  { label: 'Rescue route', swatch: 'legend-line legend-line--route', minStage: 3 },
+  { label: 'Blocked road', swatch: 'legend-line legend-line--blocked', minStage: 3 },
+  { label: 'Pickup point', swatch: 'legend-dot legend-dot--pickup', minStage: 3 },
 ];
+
+// Base-map label groups that compete with the rescue data (roads, districts and water names stay)
+const NOISY_LABEL_LAYERS = /^(poi-label|transit-label|airport-label|natural-point-label)/;
 
 export const MapView: React.FC<MapViewProps> = ({
   hazardData,
@@ -264,6 +274,17 @@ export const MapView: React.FC<MapViewProps> = ({
         );
       } catch (e) {
         console.warn('3D Buildings setup warning:', e);
+      }
+
+      // Declutter the base map: hide shop/POI/transit labels so flood data and road names stand out
+      try {
+        for (const layer of map.getStyle().layers ?? []) {
+          if (layer.type === 'symbol' && NOISY_LABEL_LAYERS.test(layer.id)) {
+            map.setLayoutProperty(layer.id, 'visibility', 'none');
+          }
+        }
+      } catch (e) {
+        console.warn('Label declutter warning:', e);
       }
 
       // Add Data Sources
@@ -401,6 +422,35 @@ export const MapView: React.FC<MapViewProps> = ({
         },
       });
 
+      // Shelter names written directly on the map (short name = text before " - ")
+      try {
+        map.addLayer({
+          id: 'safe-zones-label',
+          type: 'symbol',
+          source: 'safe-zones-src',
+          layout: {
+            'text-field': [
+              'case',
+              ['>', ['index-of', ' - ', ['to-string', ['get', 'name']]], 0],
+              ['slice', ['to-string', ['get', 'name']], 0, ['index-of', ' - ', ['to-string', ['get', 'name']]]],
+              ['to-string', ['get', 'name']],
+            ],
+            'text-font': ['DIN Pro Medium', 'Arial Unicode MS Regular'],
+            'text-size': 14,
+            'text-max-width': 8,
+            'text-anchor': 'top',
+            'text-offset': [0, 1],
+          },
+          paint: {
+            'text-color': '#DCE8FF',
+            'text-halo-color': COLOR.base,
+            'text-halo-width': 2,
+          },
+        });
+      } catch (e) {
+        console.warn('Shelter label setup warning:', e);
+      }
+
       // Click popups: one map-level handler, one popup at a time
       map.on('click', (e) => {
         popupRef.current?.remove();
@@ -497,7 +547,7 @@ export const MapView: React.FC<MapViewProps> = ({
         feature.id === 'start-point' || pointType === 'START'
           ? { variant: 'map-pin--pickup', label: 'Pickup' }
           : feature.id === 'destination-point' || pointType === 'DESTINATION'
-            ? { variant: 'map-pin--shelter', label: 'Shelter' }
+            ? { variant: 'map-pin--shelter', label: 'Destination' }
             : null;
       if (!pin) continue;
 
@@ -624,13 +674,13 @@ export const MapView: React.FC<MapViewProps> = ({
       )}
 
       {/* Legend */}
-      {!tokenMissing && (
+      {!tokenMissing && STAGE_INDEX[stage] > 0 && (
         <div
-          className="pointer-events-none absolute left-3 top-3 z-10 rounded-md border border-[#2B3038] bg-[#16191E]/90 px-3 py-2 text-xs text-[#C9CED6]"
+          className="pointer-events-none absolute left-3 top-3 z-10 rounded-md border border-[#2B3038] bg-[#16191E]/95 px-3 py-2.5 text-sm text-[#ECEEF1]"
           aria-label="Map legend"
         >
-          <ul className="space-y-1">
-            {LEGEND.map((item) => (
+          <ul className="space-y-1.5">
+            {LEGEND.filter((item) => STAGE_INDEX[stage] >= item.minStage).map((item) => (
               <li key={item.label} className="flex items-center gap-2">
                 <span className={item.swatch} aria-hidden="true" />
                 {item.label}

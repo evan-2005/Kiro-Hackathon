@@ -24,10 +24,10 @@
 | Base | `#0F1115` | App background, map horizon |
 | Panel | `#16191E` | Sidebar, popups, dialogs |
 | Raised | `#1C2026` | Cards, current step |
-| Border | `#2B3038` (strong `#3A414B`) | Dividers, card outlines |
+| Border | `#2B3038` (strong `#4A525E`) | Dividers, card outlines, current-step outline |
 | Text | `#ECEEF1` | Primary text, primary button fill |
-| Text secondary | `#A1A8B3` (body `#C9CED6`) | Descriptions, labels |
-| Text muted | `#6B7380` | Timestamps, section headings, upcoming steps |
+| Text secondary | `#B4BBC5` (8.5:1 on Raised) | Descriptions, labels |
+| Text muted | `#8D96A3` (5.5:1 on Raised) | Timestamps, section headings, upcoming steps. Never darker than this |
 | Flood | `#E5484D` (text tint `#FF8B8E`) | Flood polygons, "Critical" severity |
 | High severity | `#F76B15` (text `#FFB27A`) | "High" severity badge |
 | Pickup / caution | `#F5A524` (text `#F5C451`) | Pickup pin, "Elevated" severity, "Simulated scenario" tag, warnings |
@@ -43,8 +43,9 @@ directly so no shared config change was needed).
 
 - **Font:** system UI sans (`ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, …`). Monospace is not used.
 - **Numbers:** `tabular-nums` for distances, times, capacities and log timestamps.
-- **Scale:** app title 16px semibold · card titles 14px medium · body 12–13px · section headings 12px uppercase,
-  `tracking-wide`, muted (the only uppercase text).
+- **Scale:** ETA 36px bold (largest thing on screen) · app title 18px · current-step title and primary button 16px ·
+  list titles 15px · body 14px · section headings and badges 13px (headings uppercase, `tracking-wide`).
+- **Minimum size is 13px.** Nothing in the sidebar, popups or pins may be smaller.
 - **Sentence case** everywhere else ("Plan rescue route", not "PLAN RESCUE ROUTE").
 - **Time:** local 24-hour time (`14:32:05`), not UTC.
 
@@ -70,9 +71,13 @@ directly so no shared config change was needed).
 +------------------------------------------+---------------------------------------------+
 ```
 
-- **Response plan:** three numbered steps. Only the current step shows a primary button (white fill, dark text).
-  Done steps show a green check and a one-line result. Upcoming steps are muted. While a step runs, its button
-  shows a spinner and "Scanning…/Searching…/Planning…".
+- **Response plan — one step in focus.** Only the current step is expanded (title, one-line description and a
+  48px primary button). Done steps collapse to one line: green check, title, short result ("1 found", "3.9 km").
+  Upcoming steps are one muted line. While a step runs, its button shows a spinner and "Scanning…/Searching…/Planning…".
+- **Alert banner.** Any failure or warning appears as an amber `role="alert"` banner under the plan, never only in the log.
+- **Details — answer first.** Order is: Rescue route (ETA in 36px, then To/From) → Shelters (destination first) →
+  Flood areas. Rows show only what a crew needs at a glance (name, capacity, elevation); the rest is in the map popup.
+- **Status line.** The latest activity message is always visible at the bottom; older messages are behind "History".
 - **Satellite image comparison** (step 1): dialog over the map only, before/after slider, indeterminate progress bar,
   result "N flood areas found — AI estimate", imagery attribution footer.
 
@@ -89,7 +94,11 @@ directly so no shared config change was needed).
 | `route-safe-flow` | line | `route-src` | White 1.5px at 55%, slow direction-of-travel dashes (off with reduced motion) |
 | `route-waypoints` | circle | `route-src` | 4px anchor dot under the HTML pins |
 
-**Pins:** HTML markers with a text label — amber **Pickup** and blue **Shelter**.
+**Pins:** 22px HTML markers with a 14px text label — amber **Pickup** and blue **Destination**.
+**Direct labels:** layer `safe-zones-label` writes each shelter's short name on the map (text before " - ").
+**Decluttered base map:** POI, transit, airport and natural-point labels are hidden; roads, districts and water names stay.
+**Legend:** hidden while the map is empty; each entry appears only once that thing is on the map.
+**Controls:** zoom/compass buttons are 44px (touch-sized).
 **Popups:** neutral panel, small coloured kind label ("Flood area" / "Shelter"), title, label/value rows,
 "AI estimate — verify on the ground" on flood areas. Built with `textContent` only (AI text is untrusted).
 **Fog:** plain dark horizon, no stars.
@@ -122,4 +131,5 @@ fixed fallbacks are used only when there is no data.
   is disabled under `prefers-reduced-motion: reduce`.
 - Every button has a visible `focus-visible` ring (`#6EA8FE`). The scan dialog is `role="dialog"`, `aria-modal`,
   focuses its close button, and closes on Escape. The activity log is an `aria-live` region.
-- Text contrast on panels meets WCAG AA for body text (`#C9CED6` / `#A1A8B3` on `#16191E`).
+- All text meets WCAG AA (4.5:1) on its background; the lowest is muted `#8D96A3` at 5.5:1.
+- Touch targets: primary buttons 48px, map controls 44px, dialog/popup close buttons 36–40px, "Start over" 40px.
