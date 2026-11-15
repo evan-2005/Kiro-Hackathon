@@ -28,7 +28,7 @@ def get_mission_config():
 @router.post("/analyze-disaster")
 def analyze_disaster(payload: DisasterAnalysisRequest = DisasterAnalysisRequest()):
     """
-    Ingests satellite / aerial imagery, runs GPT-4o damage detection,
+    Ingests satellite / aerial imagery, runs local Qwen3-VL damage detection,
     and returns GeoJSON danger zone polygons. Falls back automatically if offline.
     """
     if payload.force_mock:
