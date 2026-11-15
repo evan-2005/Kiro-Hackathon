@@ -13,6 +13,48 @@ interface MapViewProps {
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || '';
 
+// Popup content is built with textContent only: hazard properties come from an AI model (untrusted).
+type FeatureProps = Record<string, unknown> | null | undefined;
+
+const isMissing = (v: unknown): boolean => v === undefined || v === null || v === '';
+
+const show = (v: unknown): string => (isMissing(v) ? '—' : String(v));
+
+const el = (tag: string, className: string, text?: string): HTMLElement => {
+  const node = document.createElement(tag);
+  node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
+};
+
+const buildHazardPopup = (props: FeatureProps): HTMLElement => {
+  const p = props ?? {};
+  const root = el('div', 'tactical-popup-body');
+  root.appendChild(el('div', 'tactical-popup-title tactical-popup-title--hazard', show(p.title)));
+  root.appendChild(el('span', 'tactical-popup-badge', show(p.severity)));
+  root.appendChild(el('div', 'tactical-popup-row', `Type: ${show(p.type)}`));
+  const depth = isMissing(p.waterDepthEstM) ? '—' : `${String(p.waterDepthEstM)} m`;
+  root.appendChild(el('div', 'tactical-popup-row', `Est. depth: ${depth}`));
+  root.appendChild(el('div', 'tactical-popup-row tactical-popup-muted', show(p.infrastructureImpact)));
+  return root;
+};
+
+const buildSafeZonePopup = (props: FeatureProps): HTMLElement => {
+  const p = props ?? {};
+  const root = el('div', 'tactical-popup-body');
+  root.appendChild(el('div', 'tactical-popup-title tactical-popup-title--safe', show(p.name)));
+  const elevation = isMissing(p.elevationM) ? '—' : `+${String(p.elevationM)} m`;
+  root.appendChild(el('div', 'tactical-popup-row', `Elevation: ${elevation}`));
+  const capacityNum = Number(p.capacityPersons);
+  const capacity =
+    isMissing(p.capacityPersons) || Number.isNaN(capacityNum)
+      ? '—'
+      : `${capacityNum.toLocaleString()} persons`;
+  root.appendChild(el('div', 'tactical-popup-row', `Capacity: ${capacity}`));
+  root.appendChild(el('div', 'tactical-popup-row tactical-popup-muted', `Road access: ${show(p.roadAccess)}`));
+  return root;
+};
+
 export const MapView: React.FC<MapViewProps> = ({
   hazardData,
   safeZoneData,
@@ -21,6 +63,7 @@ export const MapView: React.FC<MapViewProps> = ({
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
+  const popupRef = useRef<mapboxgl.Popup | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [tokenMissing, setTokenMissing] = useState(false);
 
@@ -207,10 +250,54 @@ export const MapView: React.FC<MapViewProps> = ({
         },
       });
 
+      // Click popups: one map-level handler, one popup at a time
+      map.on('click', (e) => {
+        popupRef.current?.remove();
+        popupRef.current = null;
+
+        const feature = map.queryRenderedFeatures(e.point, {
+          layers: ['safe-zones-fill', 'hazards-fill'],
+        })[0];
+        if (!feature) return;
+
+        const layerId = feature.layer?.id;
+        const content =
+          layerId === 'hazards-fill'
+            ? buildHazardPopup(feature.properties)
+            : layerId === 'safe-zones-fill'
+              ? buildSafeZonePopup(feature.properties)
+              : null;
+        if (!content) return;
+
+        popupRef.current = new mapboxgl.Popup({
+          className: 'tactical-popup',
+          closeButton: true,
+          maxWidth: '280px',
+          offset: 8,
+        })
+          .setLngLat(e.lngLat)
+          .setDOMContent(content)
+          .addTo(map);
+      });
+
+      // Pointer cursor over clickable zones
+      const setPointer = () => {
+        map.getCanvas().style.cursor = 'pointer';
+      };
+      const clearPointer = () => {
+        map.getCanvas().style.cursor = '';
+      };
+      for (const layerId of ['hazards-fill', 'safe-zones-fill']) {
+        map.on('mouseenter', layerId, setPointer);
+        map.on('mouseleave', layerId, clearPointer);
+      }
+
       setMapLoaded(true);
     });
 
     return () => {
+      popupRef.current?.remove();
+      popupRef.current = null;
       map.remove();
       mapRef.current = null;
       setMapLoaded(false);
@@ -243,6 +330,14 @@ export const MapView: React.FC<MapViewProps> = ({
       source.setData(routeData || { type: 'FeatureCollection', features: [] });
     }
   }, [routeData, mapLoaded]);
+
+  // Close any open popup on Reset
+  useEffect(() => {
+    if (stage === 'IDLE') {
+      popupRef.current?.remove();
+      popupRef.current = null;
+    }
+  }, [stage]);
 
   // Camera Choreography per Stage
   useEffect(() => {
